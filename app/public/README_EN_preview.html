@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VibePlayer — A Stunning Web Music Player</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    background: #0a0a1a;
+    color: #e0e0e0;
+    line-height: 1.8;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+
+  .hero {
+    text-align: center;
+    padding: 60px 0 40px;
+    background: linear-gradient(135deg, #1a1a3e 0%, #2d1b69 50%, #1a1a3e 100%);
+    border-radius: 20px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle at 30% 50%, rgba(139,92,246,0.15) 0%, transparent 50%),
+                radial-gradient(circle at 70% 50%, rgba(236,72,153,0.1) 0%, transparent 50%);
+    animation: heroGlow 8s ease-in-out infinite alternate;
+  }
+  @keyframes heroGlow {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(10deg); }
+  }
+  .hero h1 { font-size: 3em; margin-bottom: 12px; position: relative; }
+  .hero p { font-size: 1.1em; color: #b0b0d0; position: relative; }
+
+  .section { margin-bottom: 48px; }
+  .section h2 {
+    font-size: 1.6em; margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid rgba(139,92,246,0.3);
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  th { color: #a78bfa; font-weight: 600; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; }
+  tr:hover { background: rgba(139,92,246,0.05); }
+
+  .screenshot-card { margin-bottom: 40px; }
+  .screenshot-card h3 { font-size: 1.2em; color: #c4b5fd; margin-bottom: 12px; }
+  .screenshot-card p { color: #999; margin-bottom: 16px; }
+  .screenshot-card img {
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid rgba(139,92,246,0.2);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .screenshot-card img:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 48px rgba(139,92,246,0.2);
+  }
+
+  ol, ul { padding-left: 24px; margin: 12px 0; }
+  li { margin-bottom: 6px; }
+  strong { color: #e0d4ff; }
+  code {
+    background: rgba(139,92,246,0.15);
+    color: #c4b5fd;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 0.9em;
+    line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; }
+
+  .footer {
+    text-align: center;
+    padding: 40px 0 20px;
+    color: #666;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    margin-top: 40px;
+  }
+
+  .lang-nav {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
+  .lang-nav a {
+    padding: 8px 20px;
+    border-radius: 20px;
+    text-decoration: none;
+    color: #999;
+    font-size: 0.9em;
+    transition: all 0.2s;
+  }
+  .lang-nav a.active {
+    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    color: white;
+  }
+  .lang-nav a:not(.active):hover {
+    background: rgba(139,92,246,0.15);
+    color: #e0e0e0;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    margin: 40px 0;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="lang-nav">
+    <a href="README_preview.html">中文</a>
+    <a href="README_EN_preview.html" class="active">English</a>
+  </div>
+
+  <div class="hero">
+    <h1>🎵 VibePlayer</h1>
+    <p>A visually stunning web music player with particle effects, spectrum visualization, and multi-source playback</p>
+  </div>
+
+  <div class="section">
+    <h2>✨ Features</h2>
+    <table>
+      <thead><tr><th>Feature</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>🌌 Particle Background</td><td>Real-time floating particles rendered on Canvas with glowing trails</td></tr>
+        <tr><td>💿 Vinyl Record Animation</td><td>Auto-rotating disc with conic gradient textures and dynamic glow</td></tr>
+        <tr><td>📊 Spectrum Visualizer</td><td>32 color spectrum bars that pulse to the music</td></tr>
+        <tr><td>🎤 Lyrics Sync</td><td>Current line highlighted with gradient glow, auto-scrolling</td></tr>
+        <tr><td>📋 Playlist Management</td><td>Favorite songs, switch play modes (sequential / shuffle / repeat one)</td></tr>
+        <tr><td>📁 Local Music Library</td><td>Select local folders, recursive scan, directory tree display, click to play</td></tr>
+        <tr><td>🎬 Bilibili Integration</td><td>Paste Bilibili URLs, resolve video info, embedded player</td></tr>
+        <tr><td>🎚️ Full Player Controls</td><td>Progress bar seek, volume slider, prev/next, play/pause</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <h2>🖼️ Screenshots</h2>
+
+    <div class="screenshot-card">
+      <h3>🎵 Main Player View</h3>
+      <img src="screenshots/main-player.png" alt="Main Player">
+      <p>The main view features a spinning vinyl record, song info, spectrum visualizer, progress bar, and playback controls. The background uses dynamic gradients + floating particles that change color based on the current song's theme.</p>
+    </div>
+
+    <div class="screenshot-card">
+      <h3>📜 Lyrics Panel</h3>
+      <img src="screenshots/lyrics-view.png" alt="Lyrics Panel">
+      <p>The lyrics panel is displayed by default. The currently playing line is highlighted with a gradient glow effect, and lyrics auto-scroll to follow the playback progress.</p>
+    </div>
+
+    <div class="screenshot-card">
+      <h3>📋 Playlist</h3>
+      <img src="screenshots/playlist.png" alt="Playlist">
+      <p>View the complete playlist with favorite markers and one-click song switching. The currently playing track shows a mini spectrum indicator.</p>
+    </div>
+
+    <div class="screenshot-card">
+      <h3>📁 Local Music Library</h3>
+      <img src="screenshots/local-library.png" alt="Local Music Library">
+      <p>Click the "Local" button to open the local music library panel. After selecting a folder, all supported audio files are scanned recursively and displayed in a directory tree structure.</p>
+    </div>
+
+    <div class="screenshot-card">
+      <h3>🎬 Bilibili Panel</h3>
+      <img src="screenshots/bilibili-panel.png" alt="Bilibili Panel">
+      <p>Click the "B站" button to open the Bilibili panel. Paste a Bilibili video URL to auto-resolve, displaying video info with an embedded player. Supports playback history.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <h2>🎮 User Guide</h2>
+
+    <h3>Basic Playback</h3>
+    <ul>
+      <li><strong>Play/Pause</strong>: Click the play button at the bottom</li>
+      <li><strong>Prev/Next</strong>: Click the forward/backward buttons</li>
+      <li><strong>Seek</strong>: Click anywhere on the progress bar</li>
+      <li><strong>Volume</strong>: Drag the volume slider or click the speaker icon to mute</li>
+    </ul>
+
+    <h3>Play Modes</h3>
+    <ul>
+      <li><strong>Sequential</strong>: Loop through all songs in order</li>
+      <li><strong>Repeat One</strong>: Repeat the current song</li>
+      <li><strong>Shuffle</strong>: Randomly select the next song</li>
+    </ul>
+
+    <h3>Panel Switching</h3>
+    <table>
+      <thead><tr><th>Button</th><th>Panel</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>歌词</td><td>Lyrics</td><td>Lyrics sync display</td></tr>
+        <tr><td>列表</td><td>Playlist</td><td>Song playlist</td></tr>
+        <tr><td>本地</td><td>Library</td><td>Local music library</td></tr>
+        <tr><td>B站</td><td>Bilibili</td><td>Bilibili player</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Local Music Library</h3>
+    <ol>
+      <li>Click the "<strong>Local</strong>" button at the top</li>
+      <li>Click the "<strong>Select Folder</strong>" button</li>
+      <li>Choose a music folder in the system dialog</li>
+      <li>Wait for scanning to complete — the directory tree appears automatically</li>
+      <li>Click the arrow to expand/collapse folders</li>
+      <li>Click any song name to start playing</li>
+    </ol>
+    <p><strong>Supported Formats</strong>: MP3, FLAC, WAV, AAC, M4A, OGG, OPUS, WMA, AIFF, APE</p>
+
+    <h3>Bilibili Playback</h3>
+    <ol>
+      <li>Click the "<strong>B站</strong>" button at the top</li>
+      <li>Paste a Bilibili video URL in the input field</li>
+      <li>Click the "<strong>Resolve</strong>" button or press Enter</li>
+      <li>Upon success, video info and an embedded player are displayed</li>
+    </ol>
+    <p><strong>Supported URL Formats</strong>: Full URL, BV ID, AV ID, Multi-part URL, Mobile URL</p>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <h2>🛠️ Tech Stack</h2>
+
+    <h3>Core Framework</h3>
+    <table>
+      <thead><tr><th>Technology</th><th>Version</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>React</td><td>19.2</td><td>UI framework</td></tr>
+        <tr><td>TypeScript</td><td>5.9</td><td>Type safety</td></tr>
+        <tr><td>Vite</td><td>7.2</td><td>Build tool & dev server</td></tr>
+      </tbody>
+    </table>
+
+    <h3>UI & Styling</h3>
+    <table>
+      <thead><tr><th>Technology</th><th>Version</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Tailwind CSS</td><td>3.4</td><td>Utility-first CSS framework</td></tr>
+        <tr><td>shadcn/ui</td><td>—</td><td>High-quality component library</td></tr>
+        <tr><td>Radix UI</td><td>—</td><td>Accessible primitive components</td></tr>
+        <tr><td>lucide-react</td><td>0.562</td><td>Icon library</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Effects & Visualization (Custom)</h3>
+    <table>
+      <thead><tr><th>Module</th><th>Technology</th></tr></thead>
+      <tbody>
+        <tr><td>Particle Background</td><td>HTML5 Canvas + requestAnimationFrame</td></tr>
+        <tr><td>Spectrum Visualizer</td><td>Canvas 2D</td></tr>
+        <tr><td>Vinyl Record Rotation</td><td>CSS Keyframes</td></tr>
+        <tr><td>Lyrics Highlighting</td><td>React state-driven + CSS gradients</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <h2>🚀 Quick Start</h2>
+    <h3>Prerequisites</h3>
+    <ul>
+      <li>Node.js >= 20.19</li>
+      <li>npm >= 10</li>
+    </ul>
+    <h3>Install & Run</h3>
+    <pre><code># Clone the repository
+git clone &lt;repo-url&gt;
+cd app
+
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+
+# Build for production
+npm run build</code></pre>
+    <p>Visit <code>http://localhost:5173/</code> after starting the dev server.</p>
+  </div>
+
+  <div class="footer">
+    <p>Built with ❤️ using React + TypeScript + Tailwind CSS</p>
+    <p style="margin-top: 8px; color: #555;">MIT License</p>
+  </div>
+
+</div>
+</body>
+</html>

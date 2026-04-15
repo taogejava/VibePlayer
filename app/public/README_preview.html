@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VibePlayer — 绚丽音乐播放器</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    background: #0a0a1a;
+    color: #e0e0e0;
+    line-height: 1.8;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+
+  /* Header */
+  .hero {
+    text-align: center;
+    padding: 60px 0 40px;
+    background: linear-gradient(135deg, #1a1a3e 0%, #2d1b69 50%, #1a1a3e 100%);
+    border-radius: 20px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle at 30% 50%, rgba(139,92,246,0.15) 0%, transparent 50%),
+                radial-gradient(circle at 70% 50%, rgba(236,72,153,0.1) 0%, transparent 50%);
+    animation: heroGlow 8s ease-in-out infinite alternate;
+  }
+  @keyframes heroGlow {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(10deg); }
+  }
+  .hero h1 { font-size: 3em; margin-bottom: 12px; position: relative; }
+  .hero p { font-size: 1.1em; color: #b0b0d0; position: relative; }
+
+  /* Section */
+  .section { margin-bottom: 48px; }
+  .section h2 {
+    font-size: 1.6em; margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid rgba(139,92,246,0.3);
+  }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  th { color: #a78bfa; font-weight: 600; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; }
+  tr:hover { background: rgba(139,92,246,0.05); }
+
+  /* Screenshot card */
+  .screenshot-card { margin-bottom: 40px; }
+  .screenshot-card h3 { font-size: 1.2em; color: #c4b5fd; margin-bottom: 12px; }
+  .screenshot-card p { color: #999; margin-bottom: 16px; }
+  .screenshot-card img {
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid rgba(139,92,246,0.2);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .screenshot-card img:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 48px rgba(139,92,246,0.2);
+  }
+
+  /* Steps */
+  ol, ul { padding-left: 24px; margin: 12px 0; }
+  li { margin-bottom: 6px; }
+  strong { color: #e0d4ff; }
+  code {
+    background: rgba(139,92,246,0.15);
+    color: #c4b5fd;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 0.9em;
+    line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 40px 0 20px;
+    color: #666;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    margin-top: 40px;
+  }
+
+  /* Nav tabs */
+  .lang-nav {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
+  .lang-nav a {
+    padding: 8px 20px;
+    border-radius: 20px;
+    text-decoration: none;
+    color: #999;
+    font-size: 0.9em;
+    transition: all 0.2s;
+  }
+  .lang-nav a.active {
+    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    color: white;
+  }
+  .lang-nav a:not(.active):hover {
+    background: rgba(139,92,246,0.15);
+    color: #e0e0e0;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    margin: 40px 0;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Language Nav -->
+  <div class="lang-nav">
+    <a href="README_preview.html" class="active">中文</a>
+    <a href="README_EN_preview.html">English</a>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>🎵 VibePlayer</h1>
+    <p>一个视觉震撼的 Web 音乐播放器，集成粒子特效、频谱可视化和多源播放</p>
+  </div>
+
+  <!-- Features -->
+  <div class="section">
+    <h2>✨ 功能概览</h2>
+    <table>
+      <thead><tr><th>功能</th><th>描述</th></tr></thead>
+      <tbody>
+        <tr><td>🌌 粒子背景特效</td><td>Canvas 实时渲染的浮动粒子，播放时自动生成，带发光拖尾效果</td></tr>
+        <tr><td>💿 黑胶唱片动画</td><td>播放时自动旋转，暂停时静止，配有锥形渐变纹理和动态光晕</td></tr>
+        <tr><td>📊 频谱可视化</td><td>32 条彩色频谱条，播放时随机律动，颜色跟随歌曲主题变化</td></tr>
+        <tr><td>🎤 歌词同步高亮</td><td>当前行高亮 + 渐变发光文字效果，自动滚动跟随播放进度</td></tr>
+        <tr><td>📋 播放列表管理</td><td>收藏歌曲、切换播放模式（顺序/随机/单曲循环）</td></tr>
+        <tr><td>📁 本地音乐库</td><td>选择本地文件夹，递归扫描并按目录树展示，点击即播</td></tr>
+        <tr><td>🎬 哔哩哔哩播放</td><td>粘贴 B站链接，解析视频信息，内嵌播放器直接观看</td></tr>
+        <tr><td>🎚️ 完整播放控制</td><td>进度条拖拽、音量调节、上一首/下一首、播放/暂停</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr>
+
+  <!-- Screenshots -->
+  <div class="section">
+    <h2>🖼️ 界面截图</h2>
+
+    <div class="screenshot-card">
+      <h3>🎵 主播放界面</h3>
+      <img src="screenshots/main-player.png" alt="主播放界面">
+      <p>主界面包含旋转的黑胶唱片、歌曲信息、频谱可视化、进度条和播放控制。背景使用动态渐变色 + 漂浮粒子特效，颜色随当前歌曲主题自动切换。</p>
+    </div>
+
+    <div class="screenshot-card">
+      <h3>📜 歌词面板</h3>
+      <img src="screenshots/lyrics-view.png" alt="歌词面板">
+      <p>默认展示歌词面板，当前播放行以渐变发光效果高亮，歌词自动滚动跟随播放进度。</p>
+    </div>
+
+    <div class="screenshot-card">
+      <h3>📋 播放列表</h3>
+      <img src="screenshots/playlist.png" alt="播放列表">
+      <p>查看完整播放列表，支持收藏标记和一键切歌。当前播放曲目有迷你频谱指示器。</p>
+    </div>
+
+    <div class="screenshot-card">
+      <h3>📁 本地音乐库</h3>
+      <img src="screenshots/local-library.png" alt="本地音乐库">
+      <p>点击顶部「本地」按钮打开本地音乐库面板。选择文件夹后，自动递归扫描所有支持的音频文件，按目录树结构展示。支持展开/折叠文件夹，点击任意歌曲即可播放。</p>
+    </div>
+
+    <div class="screenshot-card">
+      <h3>🎬 哔哩哔哩面板</h3>
+      <img src="screenshots/bilibili-panel.png" alt="哔哩哔哩面板">
+      <p>点击顶部「B站」按钮打开 Bilibili 面板。粘贴 B站视频链接后自动解析，展示视频信息并内嵌播放器。支持播放历史记录。</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- User Guide -->
+  <div class="section">
+    <h2>🎮 操作指南</h2>
+
+    <h3>基本播放</h3>
+    <ul>
+      <li><strong>播放/暂停</strong>：点击底部播放按钮或按 <code>Space</code></li>
+      <li><strong>上一首/下一首</strong>：点击前进/后退按钮</li>
+      <li><strong>进度跳转</strong>：点击进度条任意位置</li>
+      <li><strong>音量调节</strong>：拖动音量滑块或点击喇叭图标静音</li>
+    </ul>
+
+    <h3>播放模式</h3>
+    <ul>
+      <li><strong>顺序播放</strong>：列表循环播放所有歌曲</li>
+      <li><strong>单曲循环</strong>：重复播放当前歌曲</li>
+      <li><strong>随机播放</strong>：随机选择下一首</li>
+    </ul>
+
+    <h3>面板切换</h3>
+    <table>
+      <thead><tr><th>按钮</th><th>面板</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>歌词</td><td>Lyrics</td><td>歌词同步显示面板</td></tr>
+        <tr><td>列表</td><td>Playlist</td><td>播放列表面板</td></tr>
+        <tr><td>本地</td><td>Library</td><td>本地音乐库面板</td></tr>
+        <tr><td>B站</td><td>Bilibili</td><td>哔哩哔哩面板</td></tr>
+      </tbody>
+    </table>
+
+    <h3>本地音乐库</h3>
+    <ol>
+      <li>点击顶部「<strong>本地</strong>」按钮</li>
+      <li>点击「<strong>选择文件夹</strong>」按钮</li>
+      <li>在系统弹窗中选择音乐文件夹</li>
+      <li>等待扫描完成，目录树自动展示</li>
+      <li>点击左侧箭头展开/折叠文件夹</li>
+      <li>点击歌曲名称即可播放</li>
+    </ol>
+    <p><strong>支持格式</strong>：MP3、FLAC、WAV、AAC、M4A、OGG、OPUS、WMA、AIFF、APE</p>
+
+    <h3>哔哩哔哩播放</h3>
+    <ol>
+      <li>点击顶部「<strong>B站</strong>」按钮</li>
+      <li>在输入框中粘贴 B站视频链接</li>
+      <li>点击「<strong>解析</strong>」按钮或按回车</li>
+      <li>解析成功后显示视频信息 + 内嵌播放器</li>
+    </ol>
+    <p><strong>支持链接格式</strong>：完整链接、BV号、AV号、分P链接、手机端链接</p>
+  </div>
+
+  <hr>
+
+  <!-- Tech Stack -->
+  <div class="section">
+    <h2>🛠️ 技术栈</h2>
+
+    <h3>核心框架</h3>
+    <table>
+      <thead><tr><th>技术</th><th>版本</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>React</td><td>19.2</td><td>前端 UI 框架</td></tr>
+        <tr><td>TypeScript</td><td>5.9</td><td>类型安全</td></tr>
+        <tr><td>Vite</td><td>7.2</td><td>构建工具 & 开发服务器</td></tr>
+      </tbody>
+    </table>
+
+    <h3>UI & 样式</h3>
+    <table>
+      <thead><tr><th>技术</th><th>版本</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>Tailwind CSS</td><td>3.4</td><td>原子化 CSS 框架</td></tr>
+        <tr><td>shadcn/ui</td><td>—</td><td>高质量组件库</td></tr>
+        <tr><td>Radix UI</td><td>—</td><td>无障碍原语组件</td></tr>
+        <tr><td>lucide-react</td><td>0.562</td><td>图标库</td></tr>
+      </tbody>
+    </table>
+
+    <h3>特效 & 可视化（自研）</h3>
+    <table>
+      <thead><tr><th>模块</th><th>技术</th></tr></thead>
+      <tbody>
+        <tr><td>粒子背景</td><td>HTML5 Canvas + requestAnimationFrame</td></tr>
+        <tr><td>频谱可视化</td><td>Canvas 2D</td></tr>
+        <tr><td>黑胶唱片旋转</td><td>CSS Keyframes</td></tr>
+        <tr><td>歌词高亮</td><td>React 状态驱动 + CSS 渐变</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr>
+
+  <!-- Quick Start -->
+  <div class="section">
+    <h2>🚀 快速开始</h2>
+    <h3>环境要求</h3>
+    <ul>
+      <li>Node.js >= 20.19</li>
+      <li>npm >= 10</li>
+    </ul>
+    <h3>安装 & 运行</h3>
+    <pre><code># 克隆项目
+git clone &lt;repo-url&gt;
+cd app
+
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+
+# 构建生产版本
+npm run build</code></pre>
+    <p>启动后访问 <code>http://localhost:5173/</code> 即可使用。</p>
+  </div>
+
+  <div class="footer">
+    <p>Built with ❤️ using React + TypeScript + Tailwind CSS</p>
+    <p style="margin-top: 8px; color: #555;">MIT License</p>
+  </div>
+
+</div>
+</body>
+</html>
