@@ -6,7 +6,7 @@ import PlaylistPanel from './PlaylistPanel'
 import PlayerControls from './PlayerControls'
 import LocalFileTree from './LocalFileTree'
 import BilibiliPanel from './BilibiliPanel'
-import { useLocalLibrary, flattenAudioFiles, type FileNode } from '../hooks/useLocalLibrary'
+import { useLocalLibrary, type FileNode } from '../hooks/useLocalLibrary'
 import { useBilibili } from '../hooks/useBilibili'
 
 export interface Song {

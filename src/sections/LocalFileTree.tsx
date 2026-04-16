@@ -1,4 +1,4 @@
-import { type FileNode, AUDIO_EXTENSIONS } from '../hooks/useLocalLibrary'
+import { type FileNode } from '../hooks/useLocalLibrary'
 
 interface Props {
   tree: FileNode[]

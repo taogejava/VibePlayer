@@ -5,7 +5,9 @@ node_modules/
 
 # Build output
 dist/
+dist-electron/
 build/
+release/
 .next/
 out/
 

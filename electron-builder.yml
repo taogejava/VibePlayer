@@ -1,0 +1,55 @@
+appId: com.taoge.vibeplayer
+productName: VibePlayer
+copyright: Copyright © 2026 taogejava
+
+directories:
+  buildResources: build
+  output: release
+
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+
+extraMetadata:
+  main: dist-electron/main.js
+
+win:
+  icon: public/icon.png
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - arm64
+    - target: portable
+      arch:
+        - x64
+
+nsis:
+  artifactName: ${name}-${version}-setup.${ext}
+  uninstallDisplayName: VibePlayer
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: VibePlayer
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: public/icon.png
+  uninstallerIcon: public/icon.png
+
+portable:
+  artifactName: ${name}-${version}-portable.${ext}
+
+mac:
+  icon: public/icon.png
+  target:
+    - target: dmg
+      arch:
+        - universal
+
+dmg:
+  artifactName: ${name}-${version}-mac.${ext}
+
+publish:
+  provider: github
+  owner: taogejava
+  repo: VibePlayer
