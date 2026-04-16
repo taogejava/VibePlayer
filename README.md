@@ -1,7 +1,7 @@
-# 🎵 VibePlayer — 绚丽音乐播放器
+# 🎵 VibePlayer — 全能媒体播放器
 
 <p align="center">
-  <strong>一个视觉震撼的 Web 音乐播放器，集成粒子特效、频谱可视化和多源播放</strong>
+  <strong>视觉震撼的桌面媒体中心，集成音乐、视频、B站、网盘于一体</strong>
 </p>
 
 ---
@@ -10,64 +10,56 @@
 
 | 功能 | 描述 |
 |------|------|
+| 🏠 绚丽首页 | 粒子动画 + 光球漂浮，6 大功能卡片一键直达 |
 | 🌌 粒子背景特效 | Canvas 实时渲染的浮动粒子，播放时自动生成，带发光拖尾效果 |
 | 💿 黑胶唱片动画 | 播放时自动旋转，暂停时静止，配有锥形渐变纹理和动态光晕 |
 | 📊 频谱可视化 | 32 条彩色频谱条，播放时随机律动，颜色跟随歌曲主题变化 |
 | 🎤 歌词同步高亮 | 当前行高亮 + 渐变发光文字效果，自动滚动跟随播放进度 |
-| 📋 播放列表管理 | 收藏歌曲、切换播放模式（顺序/随机/单曲循环） |
-| 📁 本地音乐库 | 选择本地文件夹，递归扫描并按目录树展示，点击即播 |
-| 🎬 哔哩哔哩播放 | 粘贴 B站链接，解析视频信息，内嵌播放器直接观看 |
-| 🎚️ 完整播放控制 | 进度条拖拽、音量调节、上一首/下一首、播放/暂停 |
+| 📁 本地音乐库 | 选择本地文件夹，递归扫描并按目录树展示，点击即播（10 种格式） |
+| 🎬 本地视频播放 | 扫描本地视频文件，完整播放器控件（全屏/倍速/快进快退） |
+| 🔗 URL 直链播放 | 粘贴任意音视频 URL 直接播放，自动检测文件类型 |
+| 📺 哔哩哔哩播放 | 粘贴 B站链接，解析视频信息，内嵌播放器直接观看 |
+| ☁️ WebDAV 云盘 | 连接群晖/威联通/NextCloud 等网盘，直接播放音视频 |
+| 📦 AList 网盘聚合 | 一次对接百度/阿里/123/蓝奏/夸克等所有网盘，点击即播 |
+| 🎚️ 完整播放控制 | 进度条拖拽、音量调节、上一首/下一首、播放/暂停、倍速 |
 
 ---
 
 ## 🖼️ 界面截图
 
-### 🎵 主播放界面
+### 🏠 绚丽首页
 
-![主播放界面](docs/screenshots/main-player.png)
+![首页](docs/screenshots/main-player.png)
 
-主界面包含旋转的黑胶唱片、歌曲信息、频谱可视化、进度条和播放控制。背景使用动态渐变色 + 漂浮粒子特效，颜色随当前歌曲主题自动切换。
+打开应用首先看到绚丽首页，粒子动画背景 + 彩色光球漂浮，6 大功能卡片一目了然，点击即可进入对应功能。
 
-### 📜 歌词面板
+### 🎵 音乐播放
 
-![歌词面板](docs/screenshots/lyrics-view.png)
+![音乐播放](docs/screenshots/playmusic.png)
 
-默认展示歌词面板，当前播放行以渐变发光效果高亮，歌词自动滚动跟随播放进度。
+选择本地音乐文件夹，黑胶唱片随音乐旋转，粒子特效和频谱可视化同步律动，完整还原桌面播放器体验。
 
-### 📋 播放列表
+### 🎬 哔哩哔哩播放
 
-![播放列表](docs/screenshots/playlist.png)
+![B站播放](docs/screenshots/bilibil-play.png)
 
-查看完整播放列表，支持收藏标记和一键切歌。当前播放曲目有迷你频谱指示器。
-
-### 📁 本地音乐库
-
-![本地音乐库](docs/screenshots/local-library.png)
-
-点击顶部「本地」按钮打开本地音乐库面板。选择文件夹后，自动递归扫描所有支持的音频文件，按目录树结构展示。支持展开/折叠文件夹，点击任意歌曲即可播放。
-
-### 🎵 本地音频真实播放
-
-![本地音频播放](docs/screenshots/playmusic.png)
-
-选择本地音乐文件夹后，点击歌曲即刻播放。黑胶唱片随音乐旋转，粒子特效和频谱可视化同步律动，完整还原桌面播放器体验。
-
-### 🎬 哔哩哔哩面板
-
-![哔哩哔哩面板](docs/screenshots/bilibili-panel.png)
-
-点击顶部「B站」按钮打开 Bilibili 面板。粘贴 B站视频链接后自动解析，展示视频信息并内嵌播放器。支持播放历史记录。
-
-### ▶️ 哔哩哔哩真实播放
-
-![哔哩哔哩播放](docs/screenshots/bilibil-play.png)
-
-解析 B 站链接后，视频直接在播放器内嵌框中流畅播放，无需跳转浏览器，沉浸式体验 B 站内容。
+解析 B 站链接后，视频直接在播放器内嵌框中流畅播放，无需跳转浏览器。
 
 ---
 
 ## 🎮 操作指南
+
+### 首页导航
+打开应用后默认进入绚丽首页，顶部导航栏和首页卡片提供 6 大功能入口：
+
+| 标签 | 功能 | 说明 |
+|------|------|------|
+| 听音乐 | 本地音乐 | 选择本地音乐文件夹，浏览目录树并播放 |
+| 看视频 | 本地视频 | 扫描本地视频文件，全屏播放（支持 11 种格式） |
+| B站 | 哔哩哔哩 | 粘贴 B站链接，解析并内嵌播放 |
+| 链接 | URL 直链 | 粘贴任意音视频 URL 直接播放 |
+| WebDAV | 云盘 | 连接 WebDAV 服务器，浏览并播放网盘文件 |
+| AList | 网盘聚合 | 连接 AList 服务器，访问所有已挂载网盘 |
 
 ### 基本播放
 - **播放/暂停**：点击底部播放按钮或按 `Space`
@@ -80,18 +72,8 @@
 - **单曲循环**：重复播放当前歌曲
 - **随机播放**：随机选择下一首
 
-### 面板切换
-顶部导航栏提供四个面板切换按钮：
-
-| 按钮 | 面板 | 说明 |
-|------|------|------|
-| 歌词 | Lyrics | 歌词同步显示面板 |
-| 列表 | Playlist | 播放列表面板 |
-| 本地 | Library | 本地音乐库面板 |
-| B站 | Bilibili | 哔哩哔哩面板 |
-
 ### 本地音乐库
-1. 点击顶部「**本地**」按钮
+1. 点击顶部「**听音乐**」标签
 2. 点击「**选择文件夹**」按钮
 3. 在系统弹窗中选择音乐文件夹
 4. 等待扫描完成，目录树自动展示
@@ -100,8 +82,40 @@
 
 **支持格式**：MP3、FLAC、WAV、AAC、M4A、OGG、OPUS、WMA、AIFF、APE
 
+### 本地视频播放
+1. 点击顶部「**看视频**」标签
+2. 点击「**选择文件夹**」按钮
+3. 选择视频文件夹，等待扫描完成
+4. 在视频文件树中点击视频即可全屏播放
+5. 支持倍速、快进快退、音量调节、全屏切换
+
+**支持格式**：MP4、MKV、WebM、AVI、MOV、WMV、FLV、M4V、TS、RMVB、3GP
+
+### URL 直链播放
+1. 点击顶部「**链接**」标签
+2. 在输入框中粘贴音视频 URL
+3. 点击「**播放**」按钮
+4. 自动检测文件类型，音频加入播放列表，视频全屏播放
+
+### WebDAV 云盘
+1. 点击顶部「**WebDAV**」标签
+2. 输入 WebDAV 服务器地址、用户名和密码
+3. 点击「**连接**」按钮
+4. 浏览目录，点击音视频文件即可播放
+5. 历史连接自动保存
+
+**支持服务**：群晖 NAS、威联通、NextCloud、坚果云等所有 WebDAV 服务
+
+### AList 网盘聚合
+1. 点击顶部「**AList**」标签
+2. 输入 AList 服务器地址和 Token
+3. 点击「**连接**」按钮
+4. 浏览目录，点击音视频文件即可播放
+
+**支持网盘**：百度网盘、阿里云盘、123云盘、蓝奏云、夸克网盘等所有已挂载存储
+
 ### 哔哩哔哩播放
-1. 点击顶部「**B站**」按钮
+1. 点击顶部「**B站**」标签
 2. 在输入框中粘贴 B站视频链接
 3. 点击「**解析**」按钮或按回车
 4. 解析成功后显示视频信息 + 内嵌播放器
@@ -122,6 +136,7 @@
 | React | 19.2 | 前端 UI 框架 |
 | TypeScript | 5.9 | 类型安全 |
 | Vite | 7.2 | 构建工具 & 开发服务器 |
+| Electron | 35.2 | 桌面应用打包 |
 
 ### UI & 样式
 | 技术 | 版本 | 说明 |
@@ -130,8 +145,6 @@
 | shadcn/ui | — | 高质量组件库（基于 Radix UI） |
 | Radix UI | — | 无障碍原语组件 |
 | lucide-react | 0.562 | 图标库 |
-| class-variance-authority | 0.7 | 组件变体管理 |
-| tailwindcss-animate | 1.0 | 动画扩展 |
 
 ### 特效 & 可视化（自研）
 | 模块 | 技术 |
@@ -140,6 +153,7 @@
 | 频谱可视化 | Canvas 2D |
 | 黑胶唱片旋转 | CSS Keyframes |
 | 歌词高亮 | React 状态驱动 + CSS 渐变 |
+| 首页光球动画 | CSS Keyframes + 绝对定位 |
 
 ### 数据 & 工具
 | 技术 | 版本 | 说明 |
@@ -156,27 +170,39 @@
 ```
 app/
 ├── docs/
-│   └── screenshots/          # 界面截图
+│   ├── index.html              # GitHub Pages 宣传页
+│   └── screenshots/            # 界面截图
 ├── src/
-│   ├── sections/             # 核心业务模块
-│   │   ├── MusicPlayer.tsx        # 主播放器容器
-│   │   ├── PlayerControls.tsx     # 播放控制栏（进度、音量、模式）
-│   │   ├── LyricsPanel.tsx        # 歌词同步面板
-│   │   ├── PlaylistPanel.tsx      # 播放列表面板
-│   │   ├── SpectrumVisualizer.tsx # 频谱可视化
-│   │   ├── ParticleBackground.tsx # 粒子背景特效
-│   │   ├── LocalFileTree.tsx      # 本地音乐目录树
-│   │   └── BilibiliPanel.tsx      # 哔哩哔哩面板
+│   ├── sections/               # 核心业务模块
+│   │   ├── HomePage.tsx             # 绚丽首页（功能卡片导航）
+│   │   ├── MusicPlayer.tsx          # 主播放器容器（6 大面板）
+│   │   ├── PlayerControls.tsx       # 播放控制栏
+│   │   ├── LyricsPanel.tsx          # 歌词同步面板
+│   │   ├── PlaylistPanel.tsx        # 播放列表面板
+│   │   ├── SpectrumVisualizer.tsx   # 频谱可视化
+│   │   ├── ParticleBackground.tsx   # 粒子背景特效
+│   │   ├── LocalFileTree.tsx        # 本地音乐目录树
+│   │   ├── VideoFileTree.tsx        # 本地视频目录树
+│   │   ├── VideoPlayer.tsx          # 视频播放器
+│   │   ├── UrlPlayPanel.tsx         # URL 直链播放面板
+│   │   ├── BilibiliPanel.tsx        # 哔哩哔哩面板
+│   │   ├── WebDAVPanel.tsx          # WebDAV 云盘面板
+│   │   └── AListPanel.tsx           # AList 网盘聚合面板
+│   ├── hooks/                  # 自定义 React Hooks
+│   │   ├── useLocalLibrary.ts       # 本地文件管理
+│   │   ├── useVideoLibrary.ts       # 视频文件管理
+│   │   ├── useBilibili.ts           # B站解析逻辑
+│   │   ├── useWebDAV.ts             # WebDAV 协议客户端
+│   │   └── useAList.ts              # AList API 客户端
 │   ├── components/
-│   │   └── ui/              # shadcn/ui 通用组件（53 个）
-│   ├── hooks/               # 自定义 React Hooks
-│   │   ├── useLocalLibrary.ts     # 本地文件管理
-│   │   └── useBilibili.ts         # B站解析逻辑
-│   ├── lib/                 # 工具函数
-│   ├── App.tsx              # 应用入口
-│   └── main.tsx             # 渲染入口
+│   │   └── ui/                # shadcn/ui 通用组件
+│   ├── lib/                    # 工具函数
+│   ├── App.tsx                 # 应用入口（首页路由）
+│   └── main.tsx                # 渲染入口
+├── electron/                   # Electron 主进程
 ├── index.html
 ├── package.json
+├── electron-builder.yml
 ├── tailwind.config.js
 ├── vite.config.ts
 └── tsconfig.json
@@ -194,8 +220,8 @@ app/
 
 ```bash
 # 克隆项目
-git clone <repo-url>
-cd app
+git clone https://github.com/taogejava/VibePlayer.git
+cd VibePlayer
 
 # 安装依赖
 npm install
@@ -207,7 +233,15 @@ npm run dev
 npm run build
 ```
 
-启动后访问 `http://localhost:5173/` 即可使用。
+### 打包桌面应用
+
+```bash
+# 打包 Windows（安装版 + 便携版）
+npm run build:win
+
+# 打包 macOS（Universal DMG）
+npm run build:mac
+```
 
 ---
 
@@ -218,5 +252,5 @@ MIT License
 ---
 
 <p align="center">
-  Built with ❤️ using React + TypeScript + Tailwind CSS
+  Built with ❤️ using React + TypeScript + Electron
 </p>

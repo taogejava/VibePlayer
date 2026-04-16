@@ -1,13 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import ParticleBackground from './ParticleBackground'
 import SpectrumVisualizer from './SpectrumVisualizer'
-import LyricsPanel from './LyricsPanel'
-import PlaylistPanel from './PlaylistPanel'
 import PlayerControls from './PlayerControls'
 import LocalFileTree from './LocalFileTree'
 import BilibiliPanel from './BilibiliPanel'
+import VideoFileTree from './VideoFileTree'
+import VideoPlayer from './VideoPlayer'
+import UrlPlayPanel from './UrlPlayPanel'
+import WebDAVPanel from './WebDAVPanel'
+import AListPanel from './AListPanel'
 import { useLocalLibrary, type FileNode } from '../hooks/useLocalLibrary'
+import { useVideoLibrary, type VideoFileNode } from '../hooks/useVideoLibrary'
 import { useBilibili } from '../hooks/useBilibili'
+import { useWebDAV, type WebDAVConfig, type WebDAVFile } from '../hooks/useWebDAV'
+import { useAList, type AListConfig, type AListFile } from '../hooks/useAList'
 
 export interface Song {
   id: number
@@ -88,7 +94,6 @@ let localIdCounter = 1000
 
 function fileNodeToSong(node: FileNode): Song {
   const name = node.name.replace(/\.[^/.]+$/, '')
-  // try to parse "Artist - Title"
   const parts = name.split(' - ')
   const title = parts.length >= 2 ? parts.slice(1).join(' - ').trim() : name
   const artist = parts.length >= 2 ? parts[0].trim() : '未知艺术家'
@@ -107,9 +112,23 @@ function fileNodeToSong(node: FileNode): Song {
   }
 }
 
-type Panel = 'lyrics' | 'playlist' | 'library' | 'bilibili'
+type Panel = 'library' | 'bilibili' | 'video' | 'url' | 'webdav' | 'alist'
 
-export default function MusicPlayer() {
+const PANEL_CONFIG: { key: Panel; label: string }[] = [
+  { key: 'library', label: '听音乐' },
+  { key: 'video', label: '看视频' },
+  { key: 'bilibili', label: 'B站' },
+  { key: 'url', label: '链接' },
+  { key: 'webdav', label: 'WebDAV' },
+  { key: 'alist', label: 'AList' },
+]
+
+interface MusicPlayerProps {
+  initialPanel?: string | null
+  onBackToHome?: () => void
+}
+
+export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerProps = {}) {
   // ---------- Demo / library state ----------
   const [songs, setSongs] = useState<Song[]>(DEMO_SONGS)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -120,7 +139,7 @@ export default function MusicPlayer() {
   const [isMuted, setIsMuted] = useState(false)
   const [isShuffled, setIsShuffled] = useState(false)
   const [repeatMode, setRepeatMode] = useState<'none' | 'one' | 'all'>('all')
-  const [panel, setPanel] = useState<Panel>('lyrics')
+  const [panel, setPanel] = useState<Panel>((initialPanel as Panel) || 'library')
   const [liked, setLiked] = useState<Set<number>>(new Set([1, 3]))
 
   // ---------- Audio element ----------
@@ -129,12 +148,29 @@ export default function MusicPlayer() {
 
   const song = songs[currentIndex] ?? DEMO_SONGS[0]
 
-  // ---------- Local library ----------
-  const { tree, loading, rootName, error, openFolder, toggleExpand } = useLocalLibrary()
+  // ---------- Local audio library ----------
+  const { tree, loading, rootName, error: libError, openFolder, toggleExpand } = useLocalLibrary()
   const [currentLocalFileId, setCurrentLocalFileId] = useState<string | null>(null)
+
+  // ---------- Local video library ----------
+  const videoLib = useVideoLibrary()
+  const [currentVideoFileId, setCurrentVideoFileId] = useState<string | null>(null)
+  const [currentVideoSrc, setCurrentVideoSrc] = useState<string | null>(null)
+  const [currentVideoTitle, setCurrentVideoTitle] = useState<string | null>(null)
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
 
   // ---------- Bilibili ----------
   const bilibili = useBilibili()
+
+  // ---------- URL Play ----------
+  const [urlPlayType, setUrlPlayType] = useState<'audio' | 'video' | null>(null)
+  const [urlPlaySrc, setUrlPlaySrc] = useState<string | null>(null)
+
+  // ---------- WebDAV ----------
+  const webdav = useWebDAV()
+
+  // ---------- AList ----------
+  const alist = useAList()
 
   // ---------- Audio helpers ----------
   const clearTimer = () => {
@@ -145,7 +181,6 @@ export default function MusicPlayer() {
     clearTimer()
     if (!audioRef.current) audioRef.current = new Audio()
     const audio = audioRef.current
-    // Update volume
     audio.volume = isMuted ? 0 : volume / 100
 
     if (audio.src !== url) {
@@ -155,7 +190,6 @@ export default function MusicPlayer() {
     audio.play().catch(() => {})
     setIsPlaying(true)
 
-    // Sync duration once loaded
     audio.onloadedmetadata = () => {
       setDuration(audio.duration)
       setSongs(prev => prev.map((s, i) => {
@@ -166,7 +200,6 @@ export default function MusicPlayer() {
       }))
     }
 
-    // Tick
     timerRef.current = setInterval(() => {
       if (audio.ended) {
         clearTimer()
@@ -198,7 +231,6 @@ export default function MusicPlayer() {
     if (s?.fileUrl) {
       playAudio(s.fileUrl)
     } else {
-      // Demo song: use simulated timer
       if (audioRef.current) {
         audioRef.current.pause()
         audioRef.current.src = ''
@@ -224,7 +256,7 @@ export default function MusicPlayer() {
   // Demo song play/pause toggle
   useEffect(() => {
     const s = songs[currentIndex]
-    if (s?.fileUrl) return  // handled by audio element
+    if (s?.fileUrl) return
     clearTimer()
     if (isPlaying) {
       timerRef.current = setInterval(() => {
@@ -292,10 +324,6 @@ export default function MusicPlayer() {
     setCurrentIndex(index)
     setProgress(0)
     setIsPlaying(true)
-    const s = songs[index]
-    if (s?.fileUrl) {
-      // Will be triggered by useEffect above
-    }
   }
 
   // Play from local file tree
@@ -304,7 +332,6 @@ export default function MusicPlayer() {
     const newSong = fileNodeToSong(node)
     setCurrentLocalFileId(node.id)
 
-    // Check if already in list
     setSongs(prev => {
       const existingIdx = prev.findIndex(s => s.fileNode?.id === node.id)
       if (existingIdx >= 0) {
@@ -313,7 +340,6 @@ export default function MusicPlayer() {
         playAudio(prev[existingIdx].fileUrl!)
         return prev
       }
-      // Otherwise add to list
       const next = [...prev, newSong]
       const idx = next.length - 1
       setCurrentIndex(idx)
@@ -322,6 +348,95 @@ export default function MusicPlayer() {
       return next
     })
   }, [playAudio])
+
+  // Play from local video file tree
+  const handlePlayVideoFile = useCallback((node: VideoFileNode) => {
+    if (!node.fileHandle) return
+    const url = node.url ?? URL.createObjectURL(node.fileHandle)
+    node.url = url
+    setCurrentVideoFileId(node.id)
+    setCurrentVideoSrc(url)
+    setCurrentVideoTitle(node.name.replace(/\.[^/.]+$/, ''))
+    setIsVideoPlaying(true)
+    setPanel('video')
+  }, [])
+
+  // Play from URL
+  const handlePlayUrl = useCallback((url: string, type: 'audio' | 'video') => {
+    if (type === 'audio') {
+      setUrlPlayType('audio')
+      setUrlPlaySrc(url)
+      // Also add to audio playlist
+      const name = decodeURIComponent(url.split('/').pop()?.replace(/\.[^/.]+$/, '') || url)
+      const newSong: Song = {
+        id: ++localIdCounter,
+        title: name,
+        artist: '网络链接',
+        album: 'URL 播放',
+        duration: 0,
+        cover: '',
+        color: stringToColors(name),
+        fileUrl: url,
+      }
+      setSongs(prev => {
+        const existingIdx = prev.findIndex(s => s.fileUrl === url)
+        if (existingIdx >= 0) {
+          setCurrentIndex(existingIdx)
+          setProgress(0)
+          playAudio(url)
+          return prev
+        }
+        const next = [...prev, newSong]
+        setCurrentIndex(next.length - 1)
+        setProgress(0)
+        playAudio(url)
+        return next
+      })
+    } else {
+      setUrlPlayType('video')
+      setUrlPlaySrc(url)
+      setCurrentVideoSrc(url)
+      setCurrentVideoTitle(decodeURIComponent(url.split('/').pop()?.replace(/\.[^/.]+$/, '') || '网络视频'))
+      setIsVideoPlaying(true)
+      setPanel('video')
+    }
+  }, [playAudio])
+
+  // Play from WebDAV
+  const handlePlayWebDAVFile = useCallback(async (file: WebDAVFile, type: 'audio' | 'video') => {
+    try {
+      const blobUrl = await webdav.getFileBlobUrl(file.path)
+      if (type === 'audio') {
+        handlePlayUrl(blobUrl, 'audio')
+      } else {
+        setUrlPlayType('video')
+        setCurrentVideoSrc(blobUrl)
+        setCurrentVideoTitle(file.name.replace(/\.[^/.]+$/, ''))
+        setIsVideoPlaying(true)
+        setPanel('video')
+      }
+    } catch (err: any) {
+      console.error('WebDAV play error:', err)
+    }
+  }, [webdav, handlePlayUrl])
+
+  // Play from AList
+  const handlePlayAListFile = useCallback(async (file: AListFile, type: 'audio' | 'video') => {
+    try {
+      const url = await alist.getFileUrl(`${alist.currentPath === '/' ? '' : alist.currentPath}/${file.name}`)
+      if (type === 'audio') {
+        handlePlayUrl(url, 'audio')
+      } else {
+        setUrlPlayType('video')
+        setCurrentVideoSrc(url)
+        setCurrentVideoTitle(file.name.replace(/\.[^/.]+$/, ''))
+        setIsVideoPlaying(true)
+        setPanel('video')
+      }
+    } catch (err: any) {
+      console.error('AList play error:', err)
+    }
+  }, [alist, handlePlayUrl])
 
   const toggleLike = () => {
     setLiked(prev => {
@@ -333,6 +448,9 @@ export default function MusicPlayer() {
   }
 
   const effectiveDuration = song.fileUrl ? duration : song.duration
+
+  // Determine if we should show the video player overlay
+  const showVideoOverlay = currentVideoSrc && (panel === 'video' || isVideoPlaying)
 
   return (
     <div
@@ -355,180 +473,292 @@ export default function MusicPlayer() {
         style={{ background: `radial-gradient(circle, ${song.color[2]} 0%, ${song.color[1]} 100%)` }}
       />
 
-      {/* Main container */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 py-6 flex flex-col h-full">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background: `linear-gradient(135deg, ${song.color[0]}, ${song.color[1]})` }}>
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white">
-                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-              </svg>
-            </div>
-            <span className="text-white/80 font-semibold text-sm tracking-widest uppercase">VibePlayer</span>
+      {/* Video player overlay */}
+      {showVideoOverlay && (
+        <div className="absolute inset-0 z-50 flex flex-col">
+          <div className="flex-1 min-h-0">
+            <VideoPlayer
+              src={currentVideoSrc!}
+              title={currentVideoTitle || undefined}
+              onEnded={() => {
+                setIsVideoPlaying(false)
+                setCurrentVideoSrc(null)
+                setCurrentVideoTitle(null)
+              }}
+              onPlayStateChange={(playing) => setIsVideoPlaying(playing)}
+              onError={(msg) => {
+                console.error('Video error:', msg)
+              }}
+            />
           </div>
-          <div className="flex items-center gap-1.5">
-            {(['lyrics', 'playlist', 'library', 'bilibili'] as Panel[]).map(p => {
-              const labels: Record<Panel, string> = { lyrics: '歌词', playlist: '列表', library: '本地', bilibili: 'B站' }
-              const active = panel === p
-              return (
-                <button
-                  key={p}
-                  onClick={() => setPanel(active ? 'lyrics' : p)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 flex items-center gap-1 ${
-                    active ? 'bg-white/20 text-white' : 'text-white/40 hover:text-white/70'
-                  }`}
-                >
-                  {p === 'library' && (
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
-                      <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
-                    </svg>
-                  )}
-                  {p === 'bilibili' && (
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
-                      <path d="M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 0 1-.373-.906c0-.356.124-.658.373-.907l.027-.027c.267-.249.573-.373.92-.373.347 0 .653.124.92.373L9.653 4.44c.071.071.134.142.187.213h4.267a.836.836 0 0 1 .16-.213l2.853-2.747c.267-.249.573-.373.92-.373.347 0 .662.151.929.4.267.249.391.551.391.907 0 .355-.124.657-.373.906L17.813 4.653zM5.333 7.24c-.746.018-1.373.276-1.88.773-.506.498-.769 1.13-.786 1.894v7.52c.017.764.28 1.395.786 1.893.507.498 1.134.756 1.88.773h13.334c.746-.017 1.373-.275 1.88-.773.506-.498.769-1.129.786-1.893v-7.52c-.017-.765-.28-1.396-.786-1.894-.507-.497-1.134-.755-1.88-.773H5.333zM8 11.107c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c0-.373.129-.689.386-.947.258-.257.574-.386.947-.386zm8 0c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c.017-.391.15-.711.4-.96.249-.249.56-.373.933-.373z"/>
-                    </svg>
-                  )}
-                  {labels[p]}
-                </button>
-              )
-            })}
+          {/* Close video bar */}
+          <div className="shrink-0 flex items-center justify-between px-4 py-2 bg-black/80 border-t border-white/10">
+            <div className="flex items-center gap-2">
+              <span className="text-white/60 text-xs truncate max-w-[200px]">{currentVideoTitle}</span>
+              {isVideoPlaying && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
+            </div>
+            <button
+              onClick={() => {
+                setIsVideoPlaying(false)
+                setCurrentVideoSrc(null)
+                setCurrentVideoTitle(null)
+              }}
+              className="text-white/40 hover:text-white text-xs transition-colors flex items-center gap-1"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" stroke="currentColor" strokeWidth="2"/>
+              </svg>
+              关闭
+            </button>
           </div>
         </div>
+      )}
 
-        {/* Content area */}
-        <div className="flex-1 flex gap-6 min-h-0">
-          {/* Left: Album + Info + Controls */}
-          <div className={`flex flex-col items-center justify-between transition-all duration-500 ${panel !== 'lyrics' ? 'w-[300px] shrink-0' : 'w-full'}`}>
-            {/* Album Cover */}
-            <div className="relative flex items-center justify-center" style={{ width: 200, height: 200 }}>
-              <div
-                className="absolute inset-0 rounded-full opacity-60 blur-lg transition-all duration-1000"
-                style={{ background: `conic-gradient(${song.color[0]}, ${song.color[1]}, ${song.color[2]}, ${song.color[0]})` }}
-              />
-              <div
-                className={`relative w-48 h-48 rounded-full ${isPlaying ? 'vinyl-spin' : 'vinyl-paused'} transition-all duration-500`}
-                style={{ animationDuration: isPlaying ? '8s' : '0s' }}
-              >
-                <div
-                  className="absolute inset-0 rounded-full"
-                  style={{
-                    background: `conic-gradient(
-                      ${song.color[0]}cc 0deg, ${song.color[1]}cc 120deg,
-                      ${song.color[2]}cc 240deg, ${song.color[0]}cc 360deg
-                    )`,
-                    boxShadow: `0 0 30px ${song.color[0]}88, 0 0 60px ${song.color[1]}44`,
-                  }}
-                />
-                {[30, 50, 70, 90, 110].map(r => (
-                  <div key={r} className="absolute rounded-full border border-black/20"
-                    style={{
-                      top: `calc(50% - ${r / 2 * (192 / 110)}px)`,
-                      left: `calc(50% - ${r / 2 * (192 / 110)}px)`,
-                      width: r * (192 / 110), height: r * (192 / 110),
-                    }}
-                  />
-                ))}
-                <AlbumArt song={song} />
-                <div className="absolute w-6 h-6 rounded-full bg-[#080812] border-2 border-white/10"
-                  style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
-              </div>
-            </div>
-
-            {/* Song info */}
-            <div className="text-center mt-4 w-full px-2">
-              <div className="flex items-center justify-center gap-3 mb-1">
-                <h2 className="text-white text-xl font-bold truncate max-w-[200px] shimmer-text">
-                  {song.title}
-                </h2>
-                <button onClick={toggleLike} className="shrink-0 transition-transform active:scale-125">
-                  {liked.has(song.id) ? (
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-pink-500">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5 text-white/40 hover:text-pink-400 transition-colors">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                    </svg>
-                  )}
+      {/* Main container (hidden when video overlay is active) */}
+      {!showVideoOverlay && (
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-4 py-6 flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              {onBackToHome && (
+                <button
+                  onClick={onBackToHome}
+                  className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/15 text-white/40 hover:text-white transition-all duration-300"
+                  title="返回首页"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4">
+                    <path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </button>
+              )}
+              <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{ background: `linear-gradient(135deg, ${song.color[0]}, ${song.color[1]})` }}>
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white">
+                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
               </div>
-              <p className="text-white/60 text-sm">{song.artist}</p>
-              <p className="text-white/30 text-xs mt-0.5">{song.album}</p>
+              <span className="text-white/80 font-semibold text-sm tracking-widest uppercase">VibePlayer</span>
             </div>
-
-            <div className="w-full mt-3">
-              <SpectrumVisualizer isPlaying={isPlaying} colors={song.color} />
-            </div>
-
-            <div className="w-full mt-2">
-              <PlayerControls
-                song={{ ...song, duration: effectiveDuration || song.duration }}
-                isPlaying={isPlaying}
-                progress={progress}
-                volume={volume}
-                isMuted={isMuted}
-                isShuffled={isShuffled}
-                repeatMode={repeatMode}
-                onPlayPause={handlePlayPause}
-                onNext={handleNext}
-                onPrev={handlePrev}
-                onSeek={handleSeek}
-                onVolume={setVolume}
-                onMute={() => setIsMuted(!isMuted)}
-                onShuffle={() => setIsShuffled(!isShuffled)}
-                onRepeat={() => setRepeatMode(m => m === 'none' ? 'all' : m === 'all' ? 'one' : 'none')}
-              />
+            <div className="flex items-center gap-1">
+              {PANEL_CONFIG.map(p => {
+                const active = panel === p.key
+                return (
+                  <button
+                    key={p.key}
+                    onClick={() => setPanel(p.key)}
+                    className={`px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 flex items-center gap-1 ${
+                      active ? 'bg-white/20 text-white' : 'text-white/40 hover:text-white/70'
+                    }`}
+                  >
+                    {p.key === 'library' && (
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
+                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                      </svg>
+                    )}
+                    {p.key === 'video' && (
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
+                        <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/>
+                      </svg>
+                    )}
+                    {p.key === 'bilibili' && (
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
+                        <path d="M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 0 1-.373-.906c0-.356.124-.658.373-.907l.027-.027c.267-.249.573-.373.92-.373.347 0 .653.124.92.373L9.653 4.44c.071.071.134.142.187.213h4.267a.836.836 0 0 1 .16-.213l2.853-2.747c.267-.249.573-.373.92-.373.347 0 .662.151.929.4.267.249.391.551.391.907 0 .355-.124.657-.373.906L17.813 4.653zM5.333 7.24c-.746.018-1.373.276-1.88.773-.506.498-.769 1.13-.786 1.894v7.52c.017.764.28 1.395.786 1.893.507.498 1.134.756 1.88.773h13.334c.746-.017 1.373-.275 1.88-.773.506-.498.769-1.129.786-1.893v-7.52c-.017-.765-.28-1.396-.786-1.894-.507-.497-1.134-.755-1.88-.773H5.333zM8 11.107c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c0-.373.129-.689.386-.947.258-.257.574-.386.947-.386zm8 0c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c.017-.391.15-.711.4-.96.249-.249.56-.373.933-.373z"/>
+                      </svg>
+                    )}
+                    {p.key === 'url' && (
+                      <svg viewBox="0 0 24 24" fill="none" className="w-3 h-3">
+                        <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z" stroke="currentColor" strokeWidth="2"/>
+                      </svg>
+                    )}
+                    {p.key === 'webdav' && (
+                      <svg viewBox="0 0 24 24" fill="none" className="w-3 h-3">
+                        <path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" stroke="currentColor" strokeWidth="1.5"/>
+                      </svg>
+                    )}
+                    {p.key === 'alist' && (
+                      <svg viewBox="0 0 24 24" fill="none" className="w-3 h-3">
+                        <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.5"/>
+                        <path d="M8 7h8M8 12h8M8 17h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    )}
+                    {p.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
-          {/* Right panels */}
-          {panel === 'lyrics' && (
-            <LyricsPanel song={song} progress={progress} colors={song.color} />
-          )}
-          {panel === 'playlist' && (
-            <PlaylistPanel
-              songs={songs}
-              currentIndex={currentIndex}
-              liked={liked}
-              isPlaying={isPlaying}
-              onSelect={handleSelectSong}
-              onToggleLike={(id) => setLiked(prev => {
-                const next = new Set(prev)
-                if (next.has(id)) next.delete(id)
-                else next.add(id)
-                return next
-              })}
-            />
-          )}
-          {panel === 'library' && (
+          {/* Content area */}
+          {panel === 'library' ? (
+            <div className="flex-1 flex gap-6 min-h-0">
+              {/* Left: Album + Info + Controls */}
+              <div className="flex flex-col items-center justify-between w-[300px] shrink-0">
+              {/* Album Cover */}
+              <div className="relative flex items-center justify-center" style={{ width: 200, height: 200 }}>
+                <div
+                  className="absolute inset-0 rounded-full opacity-60 blur-lg transition-all duration-1000"
+                  style={{ background: `conic-gradient(${song.color[0]}, ${song.color[1]}, ${song.color[2]}, ${song.color[0]})` }}
+                />
+                <div
+                  className={`relative w-48 h-48 rounded-full ${isPlaying ? 'vinyl-spin' : 'vinyl-paused'} transition-all duration-500`}
+                  style={{ animationDuration: isPlaying ? '8s' : '0s' }}
+                >
+                  <div
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      background: `conic-gradient(
+                        ${song.color[0]}cc 0deg, ${song.color[1]}cc 120deg,
+                        ${song.color[2]}cc 240deg, ${song.color[0]}cc 360deg
+                      )`,
+                      boxShadow: `0 0 30px ${song.color[0]}88, 0 0 60px ${song.color[1]}44`,
+                    }}
+                  />
+                  {[30, 50, 70, 90, 110].map(r => (
+                    <div key={r} className="absolute rounded-full border border-black/20"
+                      style={{
+                        top: `calc(50% - ${r / 2 * (192 / 110)}px)`,
+                        left: `calc(50% - ${r / 2 * (192 / 110)}px)`,
+                        width: r * (192 / 110), height: r * (192 / 110),
+                      }}
+                    />
+                  ))}
+                  <AlbumArt song={song} />
+                  <div className="absolute w-6 h-6 rounded-full bg-[#080812] border-2 border-white/10"
+                    style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                </div>
+              </div>
+
+              {/* Song info */}
+              <div className="text-center mt-4 w-full px-2">
+                <div className="flex items-center justify-center gap-3 mb-1">
+                  <h2 className="text-white text-xl font-bold truncate max-w-[200px] shimmer-text">
+                    {song.title}
+                  </h2>
+                  <button onClick={toggleLike} className="shrink-0 transition-transform active:scale-125">
+                    {liked.has(song.id) ? (
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-pink-500">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5 text-white/40 hover:text-pink-400 transition-colors">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                <p className="text-white/60 text-sm">{song.artist}</p>
+                <p className="text-white/30 text-xs mt-0.5">{song.album}</p>
+              </div>
+
+              <div className="w-full mt-3">
+                <SpectrumVisualizer isPlaying={isPlaying} colors={song.color} />
+              </div>
+
+              <div className="w-full mt-2">
+                <PlayerControls
+                  song={{ ...song, duration: effectiveDuration || song.duration }}
+                  isPlaying={isPlaying}
+                  progress={progress}
+                  volume={volume}
+                  isMuted={isMuted}
+                  isShuffled={isShuffled}
+                  repeatMode={repeatMode}
+                  onPlayPause={handlePlayPause}
+                  onNext={handleNext}
+                  onPrev={handlePrev}
+                  onSeek={handleSeek}
+                  onVolume={setVolume}
+                  onMute={() => setIsMuted(!isMuted)}
+                  onShuffle={() => setIsShuffled(!isShuffled)}
+                  onRepeat={() => setRepeatMode(m => m === 'none' ? 'all' : m === 'all' ? 'one' : 'none')}
+                />
+              </div>
+            </div>
+
+            {/* Right: Local file tree */}
             <LocalFileTree
               tree={tree}
               rootName={rootName}
               loading={loading}
-              error={error}
+              error={libError}
               currentFileId={currentLocalFileId}
               isPlaying={isPlaying}
               onToggleExpand={toggleExpand}
               onPlayFile={handlePlayLocalFile}
               onOpenFolder={openFolder}
             />
-          )}
-          {panel === 'bilibili' && (
-            <BilibiliPanel
-              currentVideo={bilibili.currentVideo}
-              loading={bilibili.loading}
-              error={bilibili.error}
-              history={bilibili.history}
-              getPlayerUrl={bilibili.getPlayerUrl}
-              onResolve={bilibili.resolveUrl}
-              onSelectHistory={bilibili.selectHistoryItem}
-              onClearHistory={bilibili.clearHistory}
-            />
+            </div>
+          ) : (
+            /* Full-screen panel for video, bilibili, url, webdav, alist */
+            <div className="flex-1 min-h-0">
+              {panel === 'video' && (
+                <VideoFileTree
+                  tree={videoLib.tree}
+                  rootName={videoLib.rootName}
+                  loading={videoLib.loading}
+                  error={videoLib.error}
+                  currentFileId={currentVideoFileId}
+                  isPlaying={isVideoPlaying}
+                  onToggleExpand={videoLib.toggleExpand}
+                  onPlayFile={handlePlayVideoFile}
+                  onOpenFolder={videoLib.openFolder}
+                />
+              )}
+              {panel === 'bilibili' && (
+                <BilibiliPanel
+                  currentVideo={bilibili.currentVideo}
+                  loading={bilibili.loading}
+                  error={bilibili.error}
+                  history={bilibili.history}
+                  getPlayerUrl={bilibili.getPlayerUrl}
+                  onResolve={bilibili.resolveUrl}
+                  onSelectHistory={bilibili.selectHistoryItem}
+                  onClearHistory={bilibili.clearHistory}
+                />
+              )}
+              {panel === 'url' && (
+                <UrlPlayPanel
+                  currentUrl={urlPlaySrc}
+                  currentType={urlPlayType}
+                  onPlayUrl={handlePlayUrl}
+                />
+              )}
+              {panel === 'webdav' && (
+                <WebDAVPanel
+                  connected={webdav.connected}
+                  currentPath={webdav.currentPath}
+                  files={webdav.files}
+                  loading={webdav.loading}
+                  error={webdav.error}
+                  histories={webdav.histories}
+                  onConnect={webdav.connect}
+                  onNavigate={webdav.navigate}
+                  onGoBack={webdav.goBack}
+                  onGoUp={webdav.goUp}
+                  onDisconnect={webdav.disconnect}
+                  onPlayFile={handlePlayWebDAVFile}
+                />
+              )}
+              {panel === 'alist' && (
+                <AListPanel
+                  connected={alist.connected}
+                  currentPath={alist.currentPath}
+                  files={alist.files}
+                  loading={alist.loading}
+                  error={alist.error}
+                  histories={alist.histories}
+                  onConnect={alist.connect}
+                  onNavigate={alist.navigate}
+                  onGoBack={alist.goBack}
+                  onGoUp={alist.goUp}
+                  onDisconnect={alist.disconnect}
+                  onPlayFile={handlePlayAListFile}
+                />
+              )}
+            </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   )
 }

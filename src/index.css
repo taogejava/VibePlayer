@@ -166,3 +166,28 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
+
+/* Homepage floating orb animations */
+@keyframes orb-float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(60px, -40px) scale(1.1); }
+  50% { transform: translate(-30px, 50px) scale(0.95); }
+  75% { transform: translate(40px, 20px) scale(1.05); }
+}
+
+@keyframes orb-float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-50px, -30px) scale(1.15); }
+  66% { transform: translate(30px, -60px) scale(0.9); }
+}
+
+@keyframes orb-float-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-40px, 30px) scale(1.2); }
+}
+
+/* Logo glow animation */
+@keyframes logo-glow {
+  0%, 100% { box-shadow: 0 8px 32px rgba(124,58,237,0.3), 0 0 80px rgba(124,58,237,0.15); }
+  50% { box-shadow: 0 8px 48px rgba(124,58,237,0.5), 0 0 120px rgba(124,58,237,0.25); }
+}
