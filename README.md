@@ -14,7 +14,6 @@
 | 🌌 粒子背景特效 | Canvas 实时渲染的浮动粒子，播放时自动生成，带发光拖尾效果 |
 | 💿 黑胶唱片动画 | 播放时自动旋转，暂停时静止，配有锥形渐变纹理和动态光晕 |
 | 📊 频谱可视化 | 32 条彩色频谱条，播放时随机律动，颜色跟随歌曲主题变化 |
-| 🎤 歌词同步高亮 | 当前行高亮 + 渐变发光文字效果，自动滚动跟随播放进度 |
 | 📁 本地音乐库 | 选择本地文件夹，递归扫描并按目录树展示，点击即播（10 种格式） |
 | 🎬 本地视频播放 | 扫描本地视频文件，完整播放器控件（全屏/倍速/快进快退） |
 | 🔗 URL 直链播放 | 粘贴任意音视频 URL 直接播放，自动检测文件类型 |
@@ -152,7 +151,6 @@
 | 粒子背景 | HTML5 Canvas + requestAnimationFrame |
 | 频谱可视化 | Canvas 2D |
 | 黑胶唱片旋转 | CSS Keyframes |
-| 歌词高亮 | React 状态驱动 + CSS 渐变 |
 | 首页光球动画 | CSS Keyframes + 绝对定位 |
 
 ### 数据 & 工具
@@ -177,8 +175,6 @@ app/
 │   │   ├── HomePage.tsx             # 绚丽首页（功能卡片导航）
 │   │   ├── MusicPlayer.tsx          # 主播放器容器（6 大面板）
 │   │   ├── PlayerControls.tsx       # 播放控制栏
-│   │   ├── LyricsPanel.tsx          # 歌词同步面板
-│   │   ├── PlaylistPanel.tsx        # 播放列表面板
 │   │   ├── SpectrumVisualizer.tsx   # 频谱可视化
 │   │   ├── ParticleBackground.tsx   # 粒子背景特效
 │   │   ├── LocalFileTree.tsx        # 本地音乐目录树
