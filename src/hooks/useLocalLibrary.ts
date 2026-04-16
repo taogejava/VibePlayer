@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 
 export const AUDIO_EXTENSIONS = new Set([
   'mp3', 'flac', 'wav', 'aac', 'm4a', 'ogg', 'opus', 'wma', 'aiff', 'ape', 'mp4', 'webm'
@@ -14,6 +14,51 @@ export interface FileNode {
   url?: string         // object URL, created lazily
   duration?: number
   expanded?: boolean
+}
+
+// ── IndexedDB helpers for persisting FileSystemDirectoryHandle ──
+const DB_NAME = 'vibeplayer-fs'
+const DB_VERSION = 1
+const STORE_NAME = 'handles'
+
+function openDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION)
+    req.onupgradeneeded = () => {
+      const db = req.result
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME)
+      }
+    }
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+async function saveDirHandle(handle: FileSystemDirectoryHandle): Promise<void> {
+  try {
+    const db = await openDB()
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    tx.objectStore(STORE_NAME).put(handle, 'lastMusicDir')
+    await tx.done
+  } catch { /* ignore if not supported */ }
+}
+
+async function loadDirHandle(): Promise<FileSystemDirectoryHandle | null> {
+  try {
+    const db = await openDB()
+    const tx = db.transaction(STORE_NAME, 'readonly')
+    const handle = await tx.objectStore(STORE_NAME).get('lastMusicDir') as FileSystemDirectoryHandle | undefined
+    if (handle) {
+      // Verify permission is still granted
+      const perm = await handle.queryPermission({ mode: 'read' })
+      if (perm === 'granted') return handle
+      // Try requesting permission silently
+      const req = await handle.requestPermission({ mode: 'read' })
+      if (req === 'granted') return handle
+    }
+  } catch { /* ignore */ }
+  return null
 }
 
 function getExt(name: string) {
@@ -82,6 +127,7 @@ export function useLocalLibrary() {
   const [loading, setLoading] = useState(false)
   const [rootName, setRootName] = useState<string>('')
   const [error, setError] = useState<string>('')
+  const restoredRef = useRef(false)
 
   const openFolder = useCallback(async () => {
     setError('')
@@ -90,6 +136,7 @@ export function useLocalLibrary() {
       const dirHandle: FileSystemDirectoryHandle = await window.showDirectoryPicker({ mode: 'read' })
       setLoading(true)
       setRootName(dirHandle.name)
+      saveDirHandle(dirHandle)  // persist for next session
       const nodes = await readDirectoryEntry(dirHandle, '')
       setTree(nodes)
     } catch (e: unknown) {
@@ -101,11 +148,29 @@ export function useLocalLibrary() {
     }
   }, [])
 
+  // Restore last opened folder on mount
+  const restoreLastFolder = useCallback(async () => {
+    if (restoredRef.current) return
+    restoredRef.current = true
+    const dirHandle = await loadDirHandle()
+    if (!dirHandle) return
+    try {
+      setLoading(true)
+      setRootName(dirHandle.name)
+      const nodes = await readDirectoryEntry(dirHandle, '')
+      setTree(nodes)
+    } catch {
+      // permission expired or folder moved, ignore
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const toggleExpand = useCallback((id: string) => {
     setTree(prev => toggleNode(prev, id))
   }, [])
 
-  return { tree, setTree, loading, rootName, error, openFolder, toggleExpand }
+  return { tree, setTree, loading, rootName, error, openFolder, toggleExpand, restoreLastFolder }
 }
 
 function toggleNode(nodes: FileNode[], id: string): FileNode[] {

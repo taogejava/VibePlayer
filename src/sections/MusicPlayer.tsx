@@ -9,11 +9,13 @@ import VideoPlayer from './VideoPlayer'
 import UrlPlayPanel from './UrlPlayPanel'
 import WebDAVPanel from './WebDAVPanel'
 import AListPanel from './AListPanel'
+import LyricsPanel from './LyricsPanel'
 import { useLocalLibrary, type FileNode } from '../hooks/useLocalLibrary'
 import { useVideoLibrary, type VideoFileNode } from '../hooks/useVideoLibrary'
 import { useBilibili } from '../hooks/useBilibili'
 import { useWebDAV, type WebDAVFile } from '../hooks/useWebDAV'
 import { useAList, type AListFile } from '../hooks/useAList'
+import { useLyricsSearch } from '../hooks/useLyricsSearch'
 
 export interface Song {
   id: number
@@ -149,8 +151,25 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
   const song = songs[currentIndex] ?? DEMO_SONGS[0]
 
   // ---------- Local audio library ----------
-  const { tree, loading, rootName, error: libError, openFolder, toggleExpand } = useLocalLibrary()
+  const { tree, loading, rootName, error: libError, openFolder, toggleExpand, restoreLastFolder } = useLocalLibrary()
   const [currentLocalFileId, setCurrentLocalFileId] = useState<string | null>(null)
+  const [rightPanel, setRightPanel] = useState<'list' | 'lyrics' | null>('list')
+
+  // Restore last folder on mount
+  useEffect(() => {
+    restoreLastFolder()
+  }, [restoreLastFolder])
+
+  // Auto-expand list only when tree transitions from empty to non-empty (e.g. after openFolder or restore)
+  const prevTreeLenRef = useRef(0)
+  useEffect(() => {
+    const prev = prevTreeLenRef.current
+    const curr = tree.length
+    prevTreeLenRef.current = curr
+    if (curr > 0 && prev === 0) {
+      setRightPanel('list')
+    }
+  }, [tree.length])
 
   // ---------- Local video library ----------
   const videoLib = useVideoLibrary()
@@ -171,6 +190,9 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
 
   // ---------- AList ----------
   const alist = useAList()
+
+  // ---------- Lyrics search ----------
+  const lyricsSearch = useLyricsSearch()
 
   // ---------- Audio helpers ----------
   const clearTimer = () => {
@@ -346,6 +368,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
   // Play from local video file tree
   const handlePlayVideoFile = useCallback((node: VideoFileNode) => {
     if (!node.fileHandle) return
+    pauseAudio()  // Stop audio before playing video
     const url = node.url ?? URL.createObjectURL(node.fileHandle)
     node.url = url
     setCurrentVideoFileId(node.id)
@@ -353,7 +376,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
     setCurrentVideoTitle(node.name.replace(/\.[^/.]+$/, ''))
     setIsVideoPlaying(true)
     setPanel('video')
-  }, [])
+  }, [pauseAudio])
 
   // Play from URL
   const handlePlayUrl = useCallback((url: string, type: 'audio' | 'video') => {
@@ -387,6 +410,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
         return next
       })
     } else {
+      pauseAudio()  // Stop audio before playing video
       setUrlPlayType('video')
       setUrlPlaySrc(url)
       setCurrentVideoSrc(url)
@@ -394,7 +418,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
       setIsVideoPlaying(true)
       setPanel('video')
     }
-  }, [playAudio])
+  }, [playAudio, pauseAudio])
 
   // Play from WebDAV
   const handlePlayWebDAVFile = useCallback(async (file: WebDAVFile, type: 'audio' | 'video') => {
@@ -403,6 +427,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
       if (type === 'audio') {
         handlePlayUrl(blobUrl, 'audio')
       } else {
+        pauseAudio()  // Stop audio before playing video
         setUrlPlayType('video')
         setCurrentVideoSrc(blobUrl)
         setCurrentVideoTitle(file.name.replace(/\.[^/.]+$/, ''))
@@ -412,7 +437,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
     } catch (err: any) {
       console.error('WebDAV play error:', err)
     }
-  }, [webdav, handlePlayUrl])
+  }, [webdav, handlePlayUrl, pauseAudio])
 
   // Play from AList
   const handlePlayAListFile = useCallback(async (file: AListFile, type: 'audio' | 'video') => {
@@ -421,6 +446,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
       if (type === 'audio') {
         handlePlayUrl(url, 'audio')
       } else {
+        pauseAudio()  // Stop audio before playing video
         setUrlPlayType('video')
         setCurrentVideoSrc(url)
         setCurrentVideoTitle(file.name.replace(/\.[^/.]+$/, ''))
@@ -430,7 +456,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
     } catch (err: any) {
       console.error('AList play error:', err)
     }
-  }, [alist, handlePlayUrl])
+  }, [alist, handlePlayUrl, pauseAudio])
 
   const toggleLike = () => {
     setLiked(prev => {
@@ -584,18 +610,28 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
 
           {/* Content area */}
           {panel === 'library' ? (
-            <div className="flex-1 flex gap-6 min-h-0">
-              {/* Left: Album + Info + Controls */}
-              <div className="flex flex-col items-center justify-between w-[300px] shrink-0">
-              {/* Album Cover */}
-              <div className="relative flex items-center justify-center" style={{ width: 200, height: 200 }}>
+            <div
+              className="flex-1 flex min-h-0 relative"
+            >
+              {/* Player content — two modes: list mode vs fullscreen lyrics mode */}
+              <div
+                className="flex flex-col items-center shrink-0 transition-all duration-500 ease-out relative z-10 flex-1"
+                style={{ paddingRight: rightPanel ? 296 : 0 }}
+              >
+                {/* ═══════════════ SINGLE LAYOUT — always the same ═══════════════ */}
+              {/* Album Cover — clickable to toggle lyrics panel */}
+              <div
+                className="relative flex items-center justify-center transition-all duration-500 ease-out cursor-pointer"
+                style={{ width: 200, height: 200, marginTop: 24, paddingTop: 12, paddingBottom: 12 }}
+                onClick={() => setRightPanel(p => p === 'lyrics' ? 'list' : 'lyrics')}
+              >
                 <div
-                  className="absolute inset-0 rounded-full opacity-60 blur-lg transition-all duration-1000"
-                  style={{ background: `conic-gradient(${song.color[0]}, ${song.color[1]}, ${song.color[2]}, ${song.color[0]})` }}
+                  className="absolute rounded-full opacity-60 blur-lg transition-all duration-1000"
+                  style={{ background: `conic-gradient(${song.color[0]}, ${song.color[1]}, ${song.color[2]}, ${song.color[0]})`, top: -12, left: -12, width: 'calc(100% + 24px)', height: 'calc(100% + 24px)' }}
                 />
                 <div
-                  className={`relative w-48 h-48 rounded-full ${isPlaying ? 'vinyl-spin' : 'vinyl-paused'} transition-all duration-500`}
-                  style={{ animationDuration: isPlaying ? '8s' : '0s' }}
+                  className={`relative rounded-full ${isPlaying ? 'vinyl-spin' : 'vinyl-paused'} transition-all duration-500`}
+                  style={{ width: '12rem', height: '12rem', animationDuration: isPlaying ? '8s' : '0s' }}
                 >
                   <div
                     className="absolute inset-0 rounded-full"
@@ -625,10 +661,10 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
               {/* Song info */}
               <div className="text-center mt-4 w-full px-2">
                 <div className="flex items-center justify-center gap-3 mb-1">
-                  <h2 className="text-white text-xl font-bold truncate max-w-[200px] shimmer-text">
+                  <h2 className="text-white font-bold truncate shimmer-text text-xl max-w-[200px]">
                     {song.title}
                   </h2>
-                  <button onClick={toggleLike} className="shrink-0 transition-transform active:scale-125">
+                  <button onClick={(e) => { e.stopPropagation(); toggleLike() }} className="shrink-0 transition-transform active:scale-125">
                     {liked.has(song.id) ? (
                       <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-pink-500">
                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -644,11 +680,12 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
                 <p className="text-white/30 text-xs mt-0.5">{song.album}</p>
               </div>
 
-              <div className="w-full mt-3">
+              <div className="w-full mt-3 cursor-pointer">
                 <SpectrumVisualizer isPlaying={isPlaying} colors={song.color} />
               </div>
 
-              <div className="w-full mt-2">
+              <div className="w-full mt-2"
+                onClick={(e) => e.stopPropagation()}>
                 <PlayerControls
                   song={{ ...song, duration: effectiveDuration || song.duration }}
                   isPlaying={isPlaying}
@@ -669,18 +706,100 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
               </div>
             </div>
 
-            {/* Right: Local file tree */}
-            <LocalFileTree
-              tree={tree}
-              rootName={rootName}
-              loading={loading}
-              error={libError}
-              currentFileId={currentLocalFileId}
-              isPlaying={isPlaying}
-              onToggleExpand={toggleExpand}
-              onPlayFile={handlePlayLocalFile}
-              onOpenFolder={openFolder}
-            />
+            {/* Right panel — switches between list and lyrics */}
+            <div
+              className="absolute top-0 right-0 bottom-0 shrink-0 z-20"
+              style={{
+                width: 280,
+                transform: !rightPanel ? 'translateX(100%)' : 'translateX(0)',
+                opacity: !rightPanel ? 0 : 1,
+                transitionProperty: 'transform, opacity',
+                transitionDuration: '500ms',
+                transitionTimingFunction: 'cubic-bezier(0.16,1,0.3,1)',
+                pointerEvents: !rightPanel ? 'none' : 'auto',
+                overflow: 'hidden',
+              }}
+              data-list-area
+              onClick={(e) => e.stopPropagation()}
+            >
+              {rightPanel === 'list' && (
+                <LocalFileTree
+                  tree={tree}
+                  rootName={rootName}
+                  loading={loading}
+                  error={libError}
+                  currentFileId={currentLocalFileId}
+                  isPlaying={isPlaying}
+                  onToggleExpand={toggleExpand}
+                  onPlayFile={handlePlayLocalFile}
+                  onOpenFolder={openFolder}
+                />
+              )}
+              {rightPanel === 'lyrics' && (
+                <div className="h-full flex flex-col rounded-2xl">
+                  {/* Lyrics header */}
+                  <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2 rounded-t-2xl">
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white/40 shrink-0">
+                      <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                    </svg>
+                    <span className="text-white/60 text-xs font-semibold tracking-widest uppercase">歌词</span>
+                    <button
+                      onClick={() => setRightPanel('list')}
+                      className="ml-auto shrink-0 text-white/30 hover:text-white/60 text-xs transition-colors"
+                      title="返回列表"
+                    >
+                      列表
+                    </button>
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <LyricsPanel
+                      song={song}
+                      progress={progress}
+                      colors={song.color}
+                      fullscreen
+                      externalLyrics={lyricsSearch.lyrics}
+                      searching={lyricsSearch.loading}
+                      searchResults={lyricsSearch.searchResults}
+                      lyricsSource={lyricsSearch.lyricsSource}
+                      searchError={lyricsSearch.error}
+                      onSearchLyrics={lyricsSearch.searchLyrics}
+                      onSelectResult={(index) => {
+                        const r = lyricsSearch.searchResults[index]
+                        if (r) lyricsSearch.selectResult(r)
+                      }}
+                      onClearLyrics={lyricsSearch.clearLyrics}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* Toggle button — always visible when panel is hidden */}
+            {!rightPanel && (
+              <button
+                onClick={() => {
+                  setRightPanel(tree.length > 0 ? 'list' : null)
+                  if (tree.length === 0) openFolder()
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2 px-3 py-6 rounded-2xl text-white/30 hover:text-white/60 transition-all duration-300 hover:bg-white/5"
+                title={tree.length > 0 ? '展开列表' : '打开文件夹'}
+              >
+                {tree.length > 0 ? (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" stroke="currentColor" strokeWidth="1.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                    <span className="text-[10px] tracking-widest" style={{ writingMode: 'vertical-rl' }}>列表</span>
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" stroke="currentColor" strokeWidth="1.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-[10px] tracking-widest" style={{ writingMode: 'vertical-rl' }}>文件夹</span>
+                  </>
+                )}
+              </button>
+            )}
             </div>
           ) : (
             /* Full-screen panel for video, bilibili, url, webdav, alist */

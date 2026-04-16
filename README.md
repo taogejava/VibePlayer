@@ -14,6 +14,7 @@
 | 🌌 粒子背景特效 | Canvas 实时渲染的浮动粒子，播放时自动生成，带发光拖尾效果 |
 | 💿 黑胶唱片动画 | 播放时自动旋转，暂停时静止，配有锥形渐变纹理和动态光晕 |
 | 📊 频谱可视化 | 32 条彩色频谱条，播放时随机律动，颜色跟随歌曲主题变化 |
+| 🎵 在线歌词搜索 | 本地歌曲无内嵌歌词时，一键搜索在线歌词，支持 LRC 同步滚动 |
 | 📁 本地音乐库 | 选择本地文件夹，递归扫描并按目录树展示，点击即播（10 种格式） |
 | 🎬 本地视频播放 | 扫描本地视频文件，完整播放器控件（全屏/倍速/快进快退） |
 | 🔗 URL 直链播放 | 粘贴任意音视频 URL 直接播放，自动检测文件类型 |
@@ -28,21 +29,45 @@
 
 ### 🏠 绚丽首页
 
-![首页](docs/screenshots/main-player.png)
+![首页](docs/screenshots/homepage.png)
 
 打开应用首先看到绚丽首页，粒子动画背景 + 彩色光球漂浮，6 大功能卡片一目了然，点击即可进入对应功能。
 
 ### 🎵 音乐播放
 
-![音乐播放](docs/screenshots/playmusic.png)
+![音乐播放](docs/screenshots/music-player.png)
 
-选择本地音乐文件夹，黑胶唱片随音乐旋转，粒子特效和频谱可视化同步律动，完整还原桌面播放器体验。
+选择本地音乐文件夹，黑胶唱片随音乐旋转，粒子特效和频谱可视化同步律动，完整还原桌面播放器体验。点击胶片切换歌词面板，无内嵌歌词时可搜索在线歌词。
 
-### 🎬 哔哩哔哩播放
+### 🎬 本地视频
 
-![B站播放](docs/screenshots/bilibil-play.png)
+![本地视频](docs/screenshots/video-panel.png)
 
-解析 B 站链接后，视频直接在播放器内嵌框中流畅播放，无需跳转浏览器。
+选择视频文件夹，支持 11 种视频格式，完整播放器控件（全屏/倍速/快进快退）。
+
+### 📺 哔哩哔哩播放
+
+![B站播放](docs/screenshots/bilibili-panel.png)
+
+粘贴 B 站链接后，视频直接在播放器内嵌框中流畅播放，无需跳转浏览器。
+
+### 🔗 链接播放
+
+![链接播放](docs/screenshots/url-panel.png)
+
+粘贴任意音视频 URL，自动检测文件类型直接播放。
+
+### ☁️ WebDAV 云盘
+
+![WebDAV](docs/screenshots/webdav-panel.png)
+
+连接群晖/威联通/NextCloud 等服务，直接浏览并播放音视频文件。
+
+### 📦 AList 网盘聚合
+
+![AList](docs/screenshots/alist-panel.png)
+
+一次对接，访问百度网盘、阿里云盘、123 云盘等所有已挂载存储。
 
 ---
 
@@ -70,6 +95,12 @@
 - **顺序播放**：列表循环播放所有歌曲
 - **单曲循环**：重复播放当前歌曲
 - **随机播放**：随机选择下一首
+
+### 歌词显示
+- **查看歌词**：点击黑胶唱片，右侧面板切换为歌词显示
+- **在线搜索**：当歌曲无内嵌歌词时，歌词面板显示「搜索在线歌词」按钮
+- **同步滚动**：歌词随播放进度自动滚动高亮
+- **搜索结果**：支持手动选择不同版本的歌词
 
 ### 本地音乐库
 1. 点击顶部「**听音乐**」标签
@@ -177,6 +208,7 @@ app/
 │   │   ├── PlayerControls.tsx       # 播放控制栏
 │   │   ├── SpectrumVisualizer.tsx   # 频谱可视化
 │   │   ├── ParticleBackground.tsx   # 粒子背景特效
+│   │   ├── LyricsPanel.tsx          # 歌词显示面板
 │   │   ├── LocalFileTree.tsx        # 本地音乐目录树
 │   │   ├── VideoFileTree.tsx        # 本地视频目录树
 │   │   ├── VideoPlayer.tsx          # 视频播放器
@@ -187,6 +219,7 @@ app/
 │   ├── hooks/                  # 自定义 React Hooks
 │   │   ├── useLocalLibrary.ts       # 本地文件管理
 │   │   ├── useVideoLibrary.ts       # 视频文件管理
+│   │   ├── useLyricsSearch.ts       # 在线歌词搜索
 │   │   ├── useBilibili.ts           # B站解析逻辑
 │   │   ├── useWebDAV.ts             # WebDAV 协议客户端
 │   │   └── useAList.ts              # AList API 客户端

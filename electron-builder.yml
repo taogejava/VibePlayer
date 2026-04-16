@@ -11,6 +11,9 @@ files:
   - dist-electron/**/*
   - package.json
 
+# Skip node_modules entirely - all deps are bundled by vite
+node_modules: false
+
 extraMetadata:
   main: dist-electron/main.js
 

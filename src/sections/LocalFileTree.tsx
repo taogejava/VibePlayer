@@ -206,7 +206,7 @@ export default function LocalFileTree({
   const total = tree.reduce((s, n) => s + countAudio(n), 0)
 
   return (
-    <div className="flex-1 flex flex-col rounded-2xl overflow-hidden"
+    <div className="flex-1 flex flex-col rounded-2xl h-full min-h-0"
       style={{
         background: 'rgba(255,255,255,0.03)',
         border: '1px solid rgba(255,255,255,0.08)',
@@ -214,7 +214,7 @@ export default function LocalFileTree({
       }}
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
+      <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2 rounded-t-2xl">
         <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-yellow-400/80 shrink-0">
           <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
         </svg>
@@ -237,7 +237,7 @@ export default function LocalFileTree({
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto py-1">
+      <div className="flex-1 overflow-y-auto py-1 min-h-0" style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
         {loading && (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-white/30">
             <div className="w-8 h-8 border-2 border-white/10 border-t-white/50 rounded-full animate-spin" />
