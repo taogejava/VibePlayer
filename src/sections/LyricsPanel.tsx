@@ -1,6 +1,6 @@
 import { useMemo, useRef, useEffect, useState, useCallback } from 'react'
 import type { Song } from './MusicPlayer'
-import { useLyricsSearch, type LyricsLine } from '../hooks/useLyricsSearch'
+import type { LyricsLine } from '../hooks/useLyricsSearch'
 
 interface Props {
   song: Song

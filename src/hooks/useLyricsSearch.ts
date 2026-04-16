@@ -56,7 +56,7 @@ export function useLyricsSearch() {
   const [error, setError] = useState<string>('')
   const cacheRef = useRef<Map<string, LyricCacheEntry>>(new Map())
 
-  const fetchLyricsById = useCallback(async (id: number, source: string): Promise<LyricsLine[]> => {
+  const fetchLyricsById = useCallback(async (id: number, _source: string): Promise<LyricsLine[]> => {
     // Try NetEase Cloud Music lyrics API
     try {
       const resp = await fetch(`https://music.163.com/api/song/lyric?id=${id}&lv=1`)

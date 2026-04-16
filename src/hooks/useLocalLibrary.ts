@@ -40,7 +40,10 @@ async function saveDirHandle(handle: FileSystemDirectoryHandle): Promise<void> {
     const db = await openDB()
     const tx = db.transaction(STORE_NAME, 'readwrite')
     tx.objectStore(STORE_NAME).put(handle, 'lastMusicDir')
-    await tx.done
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
   } catch { /* ignore if not supported */ }
 }
 
@@ -48,13 +51,13 @@ async function loadDirHandle(): Promise<FileSystemDirectoryHandle | null> {
   try {
     const db = await openDB()
     const tx = db.transaction(STORE_NAME, 'readonly')
-    const handle = await tx.objectStore(STORE_NAME).get('lastMusicDir') as FileSystemDirectoryHandle | undefined
+    const handle = await tx.objectStore(STORE_NAME).get('lastMusicDir') as unknown as FileSystemDirectoryHandle | undefined
     if (handle) {
       // Verify permission is still granted
-      const perm = await handle.queryPermission({ mode: 'read' })
+      const perm = await (handle as any).queryPermission({ mode: 'read' })
       if (perm === 'granted') return handle
       // Try requesting permission silently
-      const req = await handle.requestPermission({ mode: 'read' })
+      const req = await (handle as any).requestPermission({ mode: 'read' })
       if (req === 'granted') return handle
     }
   } catch { /* ignore */ }
