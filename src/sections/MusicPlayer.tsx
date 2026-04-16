@@ -12,8 +12,8 @@ import AListPanel from './AListPanel'
 import { useLocalLibrary, type FileNode } from '../hooks/useLocalLibrary'
 import { useVideoLibrary, type VideoFileNode } from '../hooks/useVideoLibrary'
 import { useBilibili } from '../hooks/useBilibili'
-import { useWebDAV, type WebDAVConfig, type WebDAVFile } from '../hooks/useWebDAV'
-import { useAList, type AListConfig, type AListFile } from '../hooks/useAList'
+import { useWebDAV, type WebDAVFile } from '../hooks/useWebDAV'
+import { useAList, type AListFile } from '../hooks/useAList'
 
 export interface Song {
   id: number
@@ -318,12 +318,6 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
     if (audioRef.current && songs[currentIndex]?.fileUrl) {
       audioRef.current.currentTime = v
     }
-  }
-
-  const handleSelectSong = (index: number) => {
-    setCurrentIndex(index)
-    setProgress(0)
-    setIsPlaying(true)
   }
 
   // Play from local file tree
