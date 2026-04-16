@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VibePlayer — 绚丽音乐播放器</title>
+  <meta name="description" content="VibePlayer — 一款视觉震撼的本地音乐播放器，集成粒子特效、频谱可视化、歌词同步和 B 站视频播放。支持 Windows & macOS。" />
+  <meta property="og:title" content="VibePlayer — 绚丽音乐播放器" />
+  <meta property="og:description" content="粒子特效 + 频谱可视化 + 本地音乐 + B站视频，全平台桌面应用" />
+  <meta property="og:image" content="screenshots/main-player.png" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #111118;
+      --card: #16161f;
+      --border: #2a2a3a;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --accent1: #a78bfa;
+      --accent2: #60a5fa;
+      --accent3: #f472b6;
+      --green: #34d399;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ---- Canvas Background ---- */
+    #canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* ---- Layout ---- */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ---- Header / Hero ---- */
+    header {
+      text-align: center;
+      padding: 100px 24px 80px;
+    }
+
+    .logo-ring {
+      display: inline-block;
+      width: 88px; height: 88px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, #a78bfa, #60a5fa, #f472b6, #a78bfa);
+      padding: 3px;
+      margin-bottom: 28px;
+      animation: spin 8s linear infinite;
+    }
+    .logo-inner {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 38px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 50%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+
+    .tagline {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 40px;
+    }
+
+    /* ---- Download Buttons ---- */
+    .download-row {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-win {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      box-shadow: 0 4px 24px rgba(99,102,241,0.35);
+    }
+    .btn-win:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(99,102,241,0.5); }
+
+    .btn-mac {
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      color: #fff;
+      box-shadow: 0 4px 24px rgba(14,165,233,0.35);
+    }
+    .btn-mac:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(14,165,233,0.5); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--accent1); color: var(--accent1); transform: translateY(-2px); }
+
+    .btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    .version-note {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    /* ---- Screenshot Showcase ---- */
+    .showcase {
+      padding: 60px 0 80px;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .section-sub {
+      text-align: center;
+      color: var(--muted);
+      margin-bottom: 48px;
+      font-size: 0.95rem;
+    }
+
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+      gap: 20px;
+    }
+
+    .shot-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .shot-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .shot-card img {
+      width: 100%;
+      display: block;
+      border-bottom: 1px solid var(--border);
+    }
+    .shot-caption {
+      padding: 14px 18px;
+    }
+    .shot-caption strong {
+      display: block;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+    .shot-caption span {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    /* ---- Features ---- */
+    .features {
+      padding: 60px 0;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .feat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      transition: border-color 0.2s;
+    }
+    .feat-card:hover { border-color: var(--accent1); }
+
+    .feat-icon {
+      font-size: 2rem;
+      margin-bottom: 14px;
+    }
+
+    .feat-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .feat-card p {
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    /* ---- Tech Stack ---- */
+    .stack {
+      padding: 60px 0;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 36px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: var(--card);
+    }
+    .badge-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+
+    /* ---- Install Steps ---- */
+    .install {
+      padding: 60px 0;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 36px;
+    }
+
+    .step {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 20px;
+      text-align: center;
+    }
+
+    .step-num {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      margin: 0 auto 16px;
+    }
+
+    .step h3 { font-size: 0.95rem; margin-bottom: 8px; }
+    .step p { font-size: 0.82rem; color: var(--muted); }
+
+    /* ---- Footer ---- */
+    footer {
+      padding: 60px 24px;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    footer a { color: var(--accent1); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 600px) {
+      .screenshots-grid { grid-template-columns: 1fr; }
+      .download-row { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <!-- Hero -->
+  <header>
+    <div class="logo-ring">
+      <div class="logo-inner">🎵</div>
+    </div>
+    <h1>VibePlayer</h1>
+    <p class="tagline">
+      视觉震撼的本地音乐播放器。<br>
+      粒子特效 · 频谱可视化 · 歌词同步 · B站视频内嵌播放
+    </p>
+
+    <div class="download-row">
+      <a class="btn btn-win" href="https://github.com/taogejava/VibePlayer/releases/latest/download/vibeplayer-1.0.0-setup.exe">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.557L10.248 4.5v7.314H3V5.557zm0 12.886L10.248 19.5v-7.098H3v5.041zm7.87 1.194L21 21v-8.813h-10.13v7.45zm0-14.274V12h10.13V3L10.87 5.363z"/></svg>
+        下载 Windows 安装包
+      </a>
+      <a class="btn btn-win" href="https://github.com/taogejava/VibePlayer/releases/latest/download/vibeplayer-1.0.0-portable.exe">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.557L10.248 4.5v7.314H3V5.557zm0 12.886L10.248 19.5v-7.098H3v5.041zm7.87 1.194L21 21v-8.813h-10.13v7.45zm0-14.274V12h10.13V3L10.87 5.363z"/></svg>
+        Windows 便携版（免安装）
+      </a>
+      <a class="btn btn-mac" href="https://github.com/taogejava/VibePlayer/releases/latest/download/vibeplayer-1.0.0-mac.dmg">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        下载 macOS DMG
+      </a>
+    </div>
+
+    <p class="version-note">
+      当前版本 v1.0.0 &nbsp;·&nbsp;
+      <a href="https://github.com/taogejava/VibePlayer/releases" style="color:#a78bfa;text-decoration:none;">查看所有发行版 →</a>
+    </p>
+  </header>
+
+  <!-- Screenshots -->
+  <section class="showcase">
+    <div class="container">
+      <h2 class="section-title">界面预览</h2>
+      <p class="section-sub">真实截图，所见即所得</p>
+
+      <div class="screenshots-grid">
+        <div class="shot-card">
+          <img src="screenshots/playmusic.png" alt="本地音频播放" loading="lazy" />
+          <div class="shot-caption">
+            <strong>🎵 本地音频真实播放</strong>
+            <span>选择本地音乐文件夹，黑胶唱片随音乐旋转，粒子特效与频谱同步律动</span>
+          </div>
+        </div>
+        <div class="shot-card">
+          <img src="screenshots/bilibil-play.png" alt="B站视频播放" loading="lazy" />
+          <div class="shot-caption">
+            <strong>▶️ 哔哩哔哩视频内嵌播放</strong>
+            <span>粘贴 B 站链接，视频在播放器中直接流畅播放，无需跳转浏览器</span>
+          </div>
+        </div>
+        <div class="shot-card">
+          <img src="screenshots/main-player.png" alt="主播放界面" loading="lazy" />
+          <div class="shot-caption">
+            <strong>💿 主播放界面</strong>
+            <span>旋转黑胶唱片 · 32 条彩色频谱 · 动态粒子背景</span>
+          </div>
+        </div>
+        <div class="shot-card">
+          <img src="screenshots/lyrics-view.png" alt="歌词面板" loading="lazy" />
+          <div class="shot-caption">
+            <strong>📜 歌词同步高亮</strong>
+            <span>当前行渐变发光高亮，自动滚动跟随播放进度</span>
+          </div>
+        </div>
+        <div class="shot-card">
+          <img src="screenshots/local-library.png" alt="本地音乐库" loading="lazy" />
+          <div class="shot-caption">
+            <strong>📁 本地音乐库</strong>
+            <span>递归扫描文件夹，按目录树展示，支持 10 种音频格式</span>
+          </div>
+        </div>
+        <div class="shot-card">
+          <img src="screenshots/playlist.png" alt="播放列表" loading="lazy" />
+          <div class="shot-caption">
+            <strong>📋 播放列表</strong>
+            <span>收藏管理 · 顺序/随机/单曲循环 · 迷你频谱指示器</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features">
+    <div class="container">
+      <h2 class="section-title">核心功能</h2>
+      <p class="section-sub">每一个细节都为沉浸感而生</p>
+
+      <div class="features-grid">
+        <div class="feat-card">
+          <div class="feat-icon">🌌</div>
+          <h3>粒子背景特效</h3>
+          <p>Canvas 实时渲染浮动粒子，播放时自动生成，带发光拖尾效果，颜色随歌曲主题变化。</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">💿</div>
+          <h3>黑胶唱片动画</h3>
+          <p>播放时自动旋转，暂停时静止，配有锥形渐变纹理和动态光晕，复古与现代完美结合。</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">📊</div>
+          <h3>频谱可视化</h3>
+          <p>32 条彩色频谱条实时律动，响应音频频率变化，视觉节奏感十足。</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">🎤</div>
+          <h3>歌词同步高亮</h3>
+          <p>当前行渐变发光高亮，歌词自动滚动跟随播放进度，沉浸式卡拉 OK 体验。</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">📁</div>
+          <h3>本地音乐库</h3>
+          <p>选择本地文件夹，自动递归扫描，支持 MP3、FLAC、WAV、AAC、M4A 等 10 种格式。</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">🎬</div>
+          <h3>哔哩哔哩内嵌播放</h3>
+          <p>粘贴 B 站链接，自动解析视频信息，内嵌播放器直接观看，告别跳转切换。</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">📋</div>
+          <h3>播放列表管理</h3>
+          <p>收藏喜爱的歌曲，一键切换顺序/随机/单曲循环，完整播放控制体验。</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">🖥️</div>
+          <h3>桌面原生应用</h3>
+          <p>基于 Electron 打包，支持 Windows & macOS，双击即用，无需安装 Node.js 或浏览器。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install Steps -->
+  <section class="install">
+    <div class="container">
+      <h2 class="section-title">三步开始使用</h2>
+      <p class="section-sub">为普通用户设计，无需任何技术基础</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>下载安装包</h3>
+          <p>点击上方按钮，根据系统选择 Windows 安装包或 macOS DMG 文件。</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>安装 / 打开</h3>
+          <p>Windows：运行 .exe 按提示安装<br>macOS：打开 DMG，将应用拖入「应用程序」文件夹。</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>选择音乐开始播放</h3>
+          <p>点击「本地」→「选择文件夹」，选中你的音乐目录，即可开始享受 🎵</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack -->
+  <section class="stack">
+    <div class="container">
+      <h2 class="section-title">技术栈</h2>
+      <p class="section-sub">现代化前端技术，精心打造</p>
+      <div class="badges">
+        <span class="badge"><span class="badge-dot" style="background:#61dafb"></span>React 19</span>
+        <span class="badge"><span class="badge-dot" style="background:#3178c6"></span>TypeScript</span>
+        <span class="badge"><span class="badge-dot" style="background:#646cff"></span>Vite 7</span>
+        <span class="badge"><span class="badge-dot" style="background:#38bdf8"></span>Tailwind CSS</span>
+        <span class="badge"><span class="badge-dot" style="background:#ffffff"></span>shadcn/ui</span>
+        <span class="badge"><span class="badge-dot" style="background:#9ece6a"></span>Electron</span>
+        <span class="badge"><span class="badge-dot" style="background:#a78bfa"></span>Canvas 2D</span>
+        <span class="badge"><span class="badge-dot" style="background:#f472b6"></span>Web Audio API</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="https://github.com/taogejava/VibePlayer">GitHub 仓库</a>
+      <a href="https://github.com/taogejava/VibePlayer/releases">下载发行版</a>
+      <a href="https://github.com/taogejava/VibePlayer/issues">反馈问题</a>
+    </div>
+    <p>VibePlayer &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; Built with ❤️ using React + Electron</p>
+  </footer>
+
+  <!-- Particle Canvas Script -->
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let W, H;
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const COLORS = ['#a78bfa', '#60a5fa', '#f472b6', '#34d399', '#fbbf24'];
+
+    function createParticle() {
+      return {
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() * 1.5 + 0.5,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        alpha: Math.random() * 0.5 + 0.2,
+      };
+    }
+
+    for (let i = 0; i < 120; i++) particles.push(createParticle());
+
+    function animate() {
+      ctx.clearRect(0, 0, W, H);
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0) p.x = W;
+        if (p.x > W) p.x = 0;
+        if (p.y < 0) p.y = H;
+        if (p.y > H) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>
