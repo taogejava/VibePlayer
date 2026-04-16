@@ -53,11 +53,12 @@ export function useLyricsSearch() {
   const [searchResults, setSearchResults] = useState<LyricsSearchResult[]>([])
   const [lyrics, setLyrics] = useState<LyricsLine[]>([])
   const [lyricsSource, setLyricsSource] = useState<string>('')
+  const [isOnline, setIsOnline] = useState(false)
   const [error, setError] = useState<string>('')
   const cacheRef = useRef<Map<string, LyricCacheEntry>>(new Map())
+  const lastAutoSearchKeyRef = useRef<string>('')
 
   const fetchLyricsById = useCallback(async (id: number, _source: string): Promise<LyricsLine[]> => {
-    // Try NetEase Cloud Music lyrics API
     try {
       const resp = await fetch(`https://music.163.com/api/song/lyric?id=${id}&lv=1`)
       if (resp.ok) {
@@ -66,7 +67,6 @@ export function useLyricsSearch() {
           const lines = parseLRC(data.lrc.lyric)
           if (lines.length > 0) return lines
         }
-        // Try tlyric (translation) if no lrc
         if (data.tlyric?.lyric) {
           const lines = parseLRC(data.tlyric.lyric)
           if (lines.length > 0) return lines
@@ -78,22 +78,29 @@ export function useLyricsSearch() {
     return []
   }, [])
 
-  const searchLyrics = useCallback(async (title: string, artist: string) => {
-    if (!title.trim()) return
+  // Internal search logic, shared by autoSearch and manual searchLyrics
+  const doSearch = useCallback(async (
+    title: string,
+    artist: string,
+    options?: { silent?: boolean },
+  ): Promise<LyricsLine[]> => {
+    if (!title.trim()) return []
 
-    // Check cache first
     const cacheKey = normalize(`${artist} ${title}`)
     const cached = cacheRef.current.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       setLyrics(cached.lines)
       setLyricsSource(cached.source)
+      setIsOnline(true)
       return cached.lines
     }
 
+    const silent = options?.silent ?? false
     setLoading(true)
     setError('')
-    setSearchResults([])
+    if (!silent) setSearchResults([])
     setLyrics([])
+    setIsOnline(false)
 
     try {
       const query = artist && artist !== '未知艺术家' ? `${artist} ${title}` : title
@@ -112,33 +119,50 @@ export function useLyricsSearch() {
       }))
 
       if (songs.length === 0) {
-        setError('未找到匹配的歌词')
+        if (!silent) setError('未找到匹配的歌词')
         return []
       }
 
-      setSearchResults(songs)
+      if (!silent) setSearchResults(songs)
 
-      // Auto-select best match
       const best = findBestMatch(songs, title, artist)
       if (best) {
         const lines = await fetchLyricsById(best.id, `${best.artist} - ${best.name}`)
         if (lines.length > 0) {
           setLyrics(lines)
           setLyricsSource(`${best.artist} - ${best.name}`)
-          // Cache
+          setIsOnline(true)
           cacheRef.current.set(cacheKey, { lines, source: `${best.artist} - ${best.name}`, timestamp: Date.now() })
           return lines
         } else {
-          setError('已找到歌曲但暂无歌词文本')
+          if (!silent) setError('已找到歌曲但暂无歌词文本')
         }
       }
     } catch (err: any) {
-      setError(err.message || '歌词搜索失败')
+      if (!silent) setError(err.message || '歌词搜索失败')
     } finally {
       setLoading(false)
     }
     return []
   }, [fetchLyricsById])
+
+  // Auto-search: called silently when song changes, no UI for search results
+  const autoSearch = useCallback((title: string, artist: string) => {
+    const key = normalize(`${artist} ${title}`)
+    if (key === lastAutoSearchKeyRef.current) return // same song, skip
+    lastAutoSearchKeyRef.current = key
+    setLyrics([])
+    setLyricsSource('')
+    setIsOnline(false)
+    setSearchResults([])
+    setError('')
+    doSearch(title, artist, { silent: true })
+  }, [doSearch])
+
+  // Manual search (with results UI)
+  const searchLyrics = useCallback(async (title: string, artist: string) => {
+    return doSearch(title, artist, { silent: false })
+  }, [doSearch])
 
   const selectResult = useCallback(async (result: LyricsSearchResult) => {
     setLoading(true)
@@ -148,6 +172,7 @@ export function useLyricsSearch() {
       if (lines.length > 0) {
         setLyrics(lines)
         setLyricsSource(`${result.artist} - ${result.name}`)
+        setIsOnline(true)
       } else {
         setError('该歌曲暂无歌词文本')
       }
@@ -161,6 +186,7 @@ export function useLyricsSearch() {
   const clearLyrics = useCallback(() => {
     setLyrics([])
     setLyricsSource('')
+    setIsOnline(false)
     setSearchResults([])
     setError('')
   }, [])
@@ -170,7 +196,9 @@ export function useLyricsSearch() {
     searchResults,
     lyrics,
     lyricsSource,
+    isOnline,
     error,
+    autoSearch,
     searchLyrics,
     selectResult,
     clearLyrics,

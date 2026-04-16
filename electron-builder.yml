@@ -45,6 +45,7 @@ mac:
     - target: dmg
       arch:
         - universal
+  notarize: false
 
 dmg:
   artifactName: ${name}-${version}-mac.${ext}

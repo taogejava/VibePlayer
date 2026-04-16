@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect, useState, useCallback } from 'react'
+import { useMemo, useRef, useEffect } from 'react'
 import type { Song } from './MusicPlayer'
 import type { LyricsLine } from '../hooks/useLyricsSearch'
 
@@ -7,20 +7,14 @@ interface Props {
   progress: number
   colors: string[]
   fullscreen?: boolean
-  /** External lyrics lines (e.g. from network search or embedded lyrics) */
+  /** External lyrics lines (e.g. from network search) */
   externalLyrics?: LyricsLine[]
   /** Whether lyrics are currently being searched */
   searching?: boolean
-  /** Trigger lyrics search */
-  onSearchLyrics?: (title: string, artist: string) => void
-  /** Select a search result */
-  onSelectResult?: (index: number) => void
-  /** Clear externally fetched lyrics */
-  onClearLyrics?: () => void
+  /** Whether the lyrics are from online search */
+  isOnlineLyrics?: boolean
   /** Source info for the fetched lyrics */
   lyricsSource?: string
-  /** Search results for user selection */
-  searchResults?: { name: string; artist: string; album: string }[]
   /** Error message from search */
   searchError?: string
 }
@@ -125,16 +119,12 @@ export default function LyricsPanel({
   fullscreen = false,
   externalLyrics,
   searching = false,
-  onSearchLyrics,
-  onSelectResult,
-  onClearLyrics,
+  isOnlineLyrics = false,
   lyricsSource: lyricsSrc,
-  searchResults: searchRes,
   searchError: searchErr,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const lineRefs = useRef<(HTMLDivElement | null)[]>([])
-  const [hasSearched, setHasSearched] = useState(false)
 
   const isLocalFile = !!song.fileUrl
 
@@ -165,22 +155,8 @@ export default function LyricsPanel({
     container.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
   }, [currentIdx, lyrics.length])
 
-  const handleSearch = useCallback(() => {
-    setHasSearched(true)
-    onSearchLyrics?.(song.title, song.artist)
-  }, [onSearchLyrics, song.title, song.artist])
-
-  const handleSelectResult = useCallback((index: number) => {
-    onSelectResult?.(index)
-  }, [onSelectResult])
-
-  const handleClear = useCallback(() => {
-    setHasSearched(false)
-    onClearLyrics?.()
-  }, [onClearLyrics])
-
-  // For local files with no lyrics and search not triggered
-  if (isLocalFile && lyrics.length === 0 && !hasSearched && !searching) {
+  // For local files with no lyrics, show placeholder
+  if (isLocalFile && lyrics.length === 0 && !searching) {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
         <svg viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10 opacity-10">
@@ -188,16 +164,10 @@ export default function LyricsPanel({
         </svg>
         <p className="text-white/20 text-sm">{song.title}</p>
         <p className="text-white/10 text-xs">{song.artist}</p>
-        <p className="text-white/10 text-xs mt-2">暂无内嵌歌词</p>
-        {onSearchLyrics && (
-          <button
-            onClick={handleSearch}
-            className="mt-2 px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-300
-                       bg-white/5 hover:bg-white/15 text-white/40 hover:text-white/80
-                       border border-white/10 hover:border-white/20"
-          >
-            搜索在线歌词
-          </button>
+        {searchErr ? (
+          <p className="text-white/10 text-xs mt-2">{searchErr}</p>
+        ) : (
+          <p className="text-white/10 text-xs mt-2">暂无歌词</p>
         )}
       </div>
     )
@@ -222,59 +192,15 @@ export default function LyricsPanel({
         </div>
       )}
 
-      {/* Search results overlay */}
-      {(searching || (searchRes && searchRes.length > 0) || searchErr) && (
-        <div className="shrink-0 border-b border-white/5" style={{ maxHeight: 200, overflowY: 'auto' }}>
-          <div className="px-4 py-2 flex items-center justify-between">
-            <span className="text-white/40 text-[10px] tracking-wider uppercase">
-              {searching ? '搜索中...' : '搜索结果'}
-            </span>
-            {(searchRes && searchRes.length > 0) && (
-              <button
-                onClick={handleClear}
-                className="text-white/30 hover:text-white/60 text-[10px] transition-colors"
-              >
-                关闭
-              </button>
-            )}
-          </div>
-          {searching && (
-            <div className="flex items-center gap-2 px-4 pb-3">
-              <div className="w-3 h-3 rounded-full border border-white/20 border-t-white/60 animate-spin" />
-              <span className="text-white/30 text-xs">正在搜索歌词...</span>
-            </div>
-          )}
-          {searchErr && (
-            <p className="px-4 pb-3 text-white/30 text-xs">{searchErr}</p>
-          )}
-          {searchRes && searchRes.map((r, i) => (
-            <button
-              key={i}
-              onClick={() => handleSelectResult(i)}
-              className="w-full text-left px-4 py-2 hover:bg-white/5 transition-colors group"
-            >
-              <p className="text-white/70 text-xs truncate group-hover:text-white/90 transition-colors">
-                {r.name}
-              </p>
-              <p className="text-white/30 text-[10px] truncate">
-                {r.artist}{r.album ? ` · ${r.album}` : ''}
-              </p>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Lyrics source info bar */}
-      {lyricsSrc && externalLyrics && externalLyrics.length > 0 && (
+      {/* Online lyrics source indicator */}
+      {isOnlineLyrics && externalLyrics && externalLyrics.length > 0 && (
         <div className="shrink-0 px-4 py-1.5 border-b border-white/5 flex items-center gap-2">
-          <span className="text-white/20 text-[10px]">歌词来源: {lyricsSrc}</span>
-          {onClearLyrics && (
-            <button
-              onClick={handleClear}
-              className="ml-auto text-white/20 hover:text-white/50 text-[10px] transition-colors"
-            >
-              清除
-            </button>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3 text-white/20">
+            <circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          <span className="text-white/20 text-[10px]">歌词来源于网络</span>
+          {lyricsSrc && (
+            <span className="text-white/15 text-[10px]">· {lyricsSrc}</span>
           )}
         </div>
       )}
@@ -330,21 +256,6 @@ export default function LyricsPanel({
               </div>
             )
           })}
-
-          {/* Show search button when lyrics are empty and no search yet */}
-          {lyrics.length === 0 && !searching && !hasSearched && isLocalFile && onSearchLyrics && (
-            <div className="flex flex-col items-center gap-3 py-8">
-              <p className="text-white/20 text-xs">暂无歌词</p>
-              <button
-                onClick={handleSearch}
-                className="px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-300
-                           bg-white/5 hover:bg-white/15 text-white/40 hover:text-white/80
-                           border border-white/10 hover:border-white/20"
-              >
-                搜索在线歌词
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>

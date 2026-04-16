@@ -194,6 +194,17 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
   // ---------- Lyrics search ----------
   const lyricsSearch = useLyricsSearch()
 
+  // Auto-search lyrics for local files when song changes
+  useEffect(() => {
+    if (song.fileUrl) {
+      // Local file: auto-search lyrics silently
+      lyricsSearch.autoSearch(song.title, song.artist)
+    } else {
+      // Demo song: clear any online lyrics
+      lyricsSearch.clearLyrics()
+    }
+  }, [song.id, song.title, song.artist, song.fileUrl]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ---------- Audio helpers ----------
   const clearTimer = () => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
@@ -759,15 +770,9 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
                       fullscreen
                       externalLyrics={lyricsSearch.lyrics}
                       searching={lyricsSearch.loading}
-                      searchResults={lyricsSearch.searchResults}
+                      isOnlineLyrics={lyricsSearch.isOnline}
                       lyricsSource={lyricsSearch.lyricsSource}
                       searchError={lyricsSearch.error}
-                      onSearchLyrics={lyricsSearch.searchLyrics}
-                      onSelectResult={(index) => {
-                        const r = lyricsSearch.searchResults[index]
-                        if (r) lyricsSearch.selectResult(r)
-                      }}
-                      onClearLyrics={lyricsSearch.clearLyrics}
                     />
                   </div>
                 </div>
