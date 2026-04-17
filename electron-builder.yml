@@ -3,7 +3,7 @@ productName: VibePlayer
 copyright: Copyright © 2026 taogejava
 
 directories:
-  buildResources: resources
+  buildResources: build
   output: release
 
 files:
@@ -15,7 +15,7 @@ extraMetadata:
   main: dist-electron/main.js
 
 win:
-  icon: resources/icon.ico
+  icon: build/icon.ico
   target:
     - target: nsis
       arch:
@@ -33,14 +33,14 @@ nsis:
   shortcutName: VibePlayer
   oneClick: false
   allowToChangeInstallationDirectory: true
-  installerIcon: resources/icon.ico
-  uninstallerIcon: resources/icon.ico
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
 
 portable:
   artifactName: ${name}-${version}-portable.${ext}
 
 mac:
-  icon: resources/icon.png
+  icon: build/icon.png
   target:
     - target: dmg
       arch:
