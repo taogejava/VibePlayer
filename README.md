@@ -239,6 +239,29 @@ app/
 
 ---
 
+## 📥 下载安装
+
+前往 [Releases](https://github.com/taogejava/VibePlayer/releases) 下载最新版本。
+
+### macOS 用户注意
+
+由于 VibePlayer 未使用 Apple 开发者证书签名，首次打开时可能会提示：
+
+> "Apple 无法验证 'VibePlayer' 是否包含可能危害 Mac 安全或泄漏隐私的恶意软件。"
+
+**解决方法（任选一种）：**
+
+**方法一**：右键点击 VibePlayer.app → 选择「打开」→ 在弹出的对话框中点击「打开」
+
+**方法二**：系统设置 → 隐私与安全性 → 滚动到底部 → 点击「仍然允许」
+
+**方法三**：终端执行以下命令后重新打开：
+```bash
+xattr -cr /Applications/VibePlayer.app
+```
+
+---
+
 ## 🚀 快速开始
 
 ### 环境要求

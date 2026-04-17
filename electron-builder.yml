@@ -39,11 +39,14 @@ portable:
 
 mac:
   icon: build/icon.png
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
   target:
     - target: dmg
       arch:
         - universal
-  notarize: false
 
 dmg:
   artifactName: ${name}-${version}-mac.${ext}

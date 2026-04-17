@@ -39,6 +39,25 @@ jobs:
         shell: bash
         run: npx electron-builder --${{ matrix.platform }} --publish never
 
+      - name: Ad-hoc sign macOS app
+        if: matrix.platform == 'mac'
+        shell: bash
+        run: |
+          APP_PATH=$(find release/ -name "*.app" -type d -maxdepth 1 | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app found in release/"
+            find release/ -maxdepth 3 -type f | sort
+            exit 1
+          fi
+          echo "Signing: $APP_PATH"
+          # Remove existing signature first
+          xattr -cr "$APP_PATH"
+          # Ad-hoc sign the app and all nested binaries
+          codesign --force --deep --sign - "$APP_PATH"
+          echo "Ad-hoc signing done"
+          # Verify
+          codesign --verify --deep --strict "$APP_PATH" 2>&1 || true
+
       - name: Verify output files
         id: verify
         shell: bash

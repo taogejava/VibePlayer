@@ -239,6 +239,29 @@ app/
 
 ---
 
+## 📥 Download & Install
+
+Download the latest version from [Releases](https://github.com/taogejava/VibePlayer/releases).
+
+### macOS Users
+
+VibePlayer is not signed with an Apple Developer Certificate. On first launch, you may see:
+
+> "Apple cannot verify 'VibePlayer' is free of malware."
+
+**Fix (choose one):**
+
+**Option 1**: Right-click VibePlayer.app → select "Open" → click "Open" in the dialog
+
+**Option 2**: System Settings → Privacy & Security → scroll to bottom → click "Allow Anyway"
+
+**Option 3**: Run this command in Terminal, then reopen the app:
+```bash
+xattr -cr /Applications/VibePlayer.app
+```
+
+---
+
 ## 🚀 Quick Start
 
 ### Prerequisites
