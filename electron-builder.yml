@@ -48,7 +48,4 @@ mac:
 dmg:
   artifactName: ${name}-${version}-mac.${ext}
 
-publish:
-  provider: github
-  owner: taogejava
-  repo: VibePlayer
+# publish is handled by GitHub Actions workflow, not electron-builder directly

@@ -37,9 +37,7 @@ jobs:
 
       - name: Package with electron-builder
         shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --${{ matrix.platform }} || true
+        run: npx electron-builder --${{ matrix.platform }} --publish never
 
       - name: Verify output files
         id: verify
