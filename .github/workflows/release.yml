@@ -12,9 +12,9 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            build_cmd: npm run build:mac
+            platform: mac
           - os: windows-latest
-            build_cmd: npm run build:win
+            platform: win
 
     runs-on: ${{ matrix.os }}
 
@@ -31,28 +31,44 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Vite build only
+      - name: Build frontend
         shell: bash
-        run: |
-          npx tsc -b 2>&1
-          echo "tsc exit code: $?"
-          npx vite build 2>&1
-          echo "vite build exit code: $?"
+        run: npx tsc -b && npx vite build
 
-      - name: Electron build
+      - name: Package with electron-builder
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEBUG: electron-builder
+        run: npx electron-builder --${{ matrix.platform }} || true
+
+      - name: List release output
+        shell: bash
+        run: ls -lh release/ || echo "No release output found"
+
+      - name: Check release files exist
+        id: check_files
+        shell: bash
         run: |
-          npx electron-builder --${{ matrix.os == 'macos-latest' && 'mac' || 'win' }} 2>&1 | tail -100
+          count=$(ls release/*.exe release/*.dmg release/*.AppImage 2>/dev/null | wc -l | tr -d ' ')
+          echo "file_count=$count" >> $GITHUB_OUTPUT
+          if [ "$count" -gt 0 ]; then
+            echo "Release files found: $count"
+            ls -lh release/*.exe release/*.dmg 2>/dev/null
+          else
+            echo "ERROR: No release files found!"
+            exit 1
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.os }}
-          path: release/*
-        if: always()
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.blockmap
+            release/*.yml
+        if: steps.check_files.outputs.file_count > 0
 
   release:
     needs: build
