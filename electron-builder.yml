@@ -33,8 +33,6 @@ nsis:
   shortcutName: VibePlayer
   oneClick: false
   allowToChangeInstallationDirectory: true
-  installerIcon: build/icon.ico
-  uninstallerIcon: build/icon.ico
 
 portable:
   artifactName: ${name}-${version}-portable.${ext}
