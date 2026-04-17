@@ -39,29 +39,25 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEBUG: electron-builder
-        run: |
-          npx electron-builder --${{ matrix.platform }} 2>&1 | tee build-log.txt
-          exit_code=${PIPESTATUS[0]}
-          echo "exit_code=$exit_code"
-          exit $exit_code
+        run: npx electron-builder --${{ matrix.platform }} || true
 
-      - name: Upload build log (always)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log-${{ matrix.platform }}
-          path: build-log.txt
-
-      - name: List release output
-        if: always()
+      - name: Verify output files
+        id: verify
         shell: bash
         run: |
-          echo "=== release/ directory contents ==="
-          find release/ -maxdepth 3 2>/dev/null || echo "No release/ dir"
+          echo "=== release/ contents ==="
+          find release/ -maxdepth 3 -type f 2>/dev/null | sort || echo "(none)"
+          # check for mac or windows output
+          if find release/ -maxdepth 1 -name "*.dmg" -o -name "*.exe" 2>/dev/null | grep -q .; then
+            echo "has_output=true" >> $GITHUB_OUTPUT
+            echo "Output files found!"
+          else
+            echo "has_output=false" >> $GITHUB_OUTPUT
+            echo "ERROR: No .dmg or .exe found"
+            exit 1
+          fi
 
       - name: Upload artifacts
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.platform }}
@@ -70,7 +66,7 @@ jobs:
             release/*.dmg
             release/*.blockmap
             release/*.yml
-          if-no-files-found: warn
+          if-no-files-found: error
 
   release:
     needs: build
@@ -89,7 +85,7 @@ jobs:
           merge-multiple: true
 
       - name: List release files
-        run: find release/ -type f 2>/dev/null || echo "No files"
+        run: find release/ -type f | sort
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
