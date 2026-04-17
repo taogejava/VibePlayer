@@ -52,4 +52,25 @@ mac:
 dmg:
   artifactName: ${name}-${version}-mac.${ext}
 
-# publish is handled by GitHub Actions workflow, not electron-builder directly
+linux:
+  icon: build/icon.png
+  category: AudioVideo
+  target:
+    - target: AppImage
+      arch:
+        - x64
+        - arm64
+    - target: deb
+      arch:
+        - x64
+        - arm64
+
+appImage:
+  artifactName: ${name}-${version}-${arch}.${ext}
+
+deb:
+  artifactName: ${name}-${version}-${arch}.${ext}
+  depends:
+    - libnotify4
+    - libxtst6
+    - libnss3

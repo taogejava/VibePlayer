@@ -77,6 +77,13 @@ export default function WebDAVPanel({
             <h3 className="text-white/80 text-sm font-semibold">WebDAV 云盘</h3>
           </div>
 
+          {/* Error message — shown in both login form and file browser */}
+          {error && (
+            <div className="shrink-0 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-xl">
+              <p className="text-red-300/90 text-xs">{error}</p>
+            </div>
+          )}
+
           {/* Quick connect history */}
           {histories.length > 0 && (
             <div className="space-y-1.5">

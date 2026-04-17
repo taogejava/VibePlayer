@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -15,6 +18,8 @@ jobs:
             platform: mac
           - os: windows-latest
             platform: win
+          - os: ubuntu-latest
+            platform: linux
 
     runs-on: ${{ matrix.os }}
 
@@ -27,6 +32,13 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+
+      # Linux 需要的系统依赖
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnotify4 libxtst6 libnss3 libgbm1 libasound2t64
 
       - name: Install dependencies
         run: npm ci
@@ -44,14 +56,28 @@ jobs:
         shell: bash
         run: |
           echo "=== release/ contents ==="
-          find release/ -maxdepth 3 -type f 2>/dev/null | sort || echo "(none)"
-          # check for mac or windows output
-          if find release/ -maxdepth 1 -name "*.dmg" -o -name "*.exe" 2>/dev/null | grep -q .; then
+          find release/ -maxdepth 2 -type f 2>/dev/null | sort || echo "(none)"
+
+          HAS_OUTPUT=false
+          # Check for platform-specific output files
+          case "${{ matrix.platform }}" in
+            mac)
+              find release/ -maxdepth 1 -name "*.dmg" 2>/dev/null | grep -q . && HAS_OUTPUT=true
+              ;;
+            win)
+              find release/ -maxdepth 1 -name "*.exe" 2>/dev/null | grep -q . && HAS_OUTPUT=true
+              ;;
+            linux)
+              find release/ -maxdepth 1 \( -name "*.AppImage" -o -name "*.deb" \) 2>/dev/null | grep -q . && HAS_OUTPUT=true
+              ;;
+          esac
+
+          if [ "$HAS_OUTPUT" = "true" ]; then
             echo "has_output=true" >> $GITHUB_OUTPUT
-            echo "Output files found!"
+            echo "✅ Output files found for ${{ matrix.platform }}"
           else
             echo "has_output=false" >> $GITHUB_OUTPUT
-            echo "ERROR: No .dmg or .exe found"
+            echo "❌ ERROR: No output files found for ${{ matrix.platform }}"
             exit 1
           fi
 
@@ -62,6 +88,8 @@ jobs:
           path: |
             release/*.exe
             release/*.dmg
+            release/*.AppImage
+            release/*.deb
           if-no-files-found: error
 
   release:
@@ -81,7 +109,7 @@ jobs:
           merge-multiple: true
 
       - name: List release files
-        run: find release/ -type f | sort
+        run: find release/ -type f -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" | sort
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

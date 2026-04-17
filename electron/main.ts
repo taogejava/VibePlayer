@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, session } from 'electron'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -52,6 +52,21 @@ function createWindow() {
       shell.openExternal(url)
     }
     return { action: 'deny' }
+  })
+
+  // Bypass CORS for WebDAV/AList requests
+  // WebDAV servers typically don't set CORS headers, so we inject them here
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    // Only modify external http(s) requests, not local file://
+    if (!details.url.startsWith('http')) {
+      callback({})
+      return
+    }
+    const responseHeaders = details.responseHeaders || {}
+    responseHeaders['Access-Control-Allow-Origin'] = ['*']
+    responseHeaders['Access-Control-Allow-Methods'] = ['GET, PUT, POST, DELETE, PROPFIND, OPTIONS, MKCOL, HEAD']
+    responseHeaders['Access-Control-Allow-Headers'] = ['*']
+    callback({ responseHeaders })
   })
 
   // Show window when ready to prevent white flash on startup

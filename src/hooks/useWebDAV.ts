@@ -34,19 +34,38 @@ async function davRequest(
   method: string,
   path: string
 ): Promise<Response> {
-  const url = config.serverUrl.replace(/\/+$/, '') + path
-  const resp = await fetch(url, {
-    method,
-    headers: {
-      'Authorization': getAuthHeader(config),
-      'Depth': '1',
-    },
-  })
+  let url = config.serverUrl.replace(/\/+$/, '') + path
+  // Ensure the URL always starts with http(s)://
+  if (!/^https?:\/\//i.test(url)) {
+    url = 'https://' + url
+  }
+  let resp: Response
+  try {
+    resp = await fetch(url, {
+      method,
+      headers: {
+        'Authorization': getAuthHeader(config),
+        'Depth': '1',
+      },
+    })
+  } catch (err: any) {
+    const msg = err?.message || String(err)
+    // Provide more helpful error messages for common network issues
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('net::')) {
+      throw new Error(`网络请求失败，请检查服务器地址是否正确（${url}）`)
+    }
+    if (msg.includes('CORS') || msg.includes('cross-origin')) {
+      throw new Error('跨域请求被拒绝，该 WebDAV 服务器不允许浏览器直接访问')
+    }
+    throw new Error(`连接失败：${msg}`)
+  }
   if (!resp.ok) {
     if (resp.status === 401 || resp.status === 403) throw new Error('认证失败，请检查用户名和密码')
-    if (resp.status === 404) throw new Error('路径不存在')
+    if (resp.status === 404) throw new Error(`路径不存在（${url}）`)
     if (resp.status === 405) throw new Error('服务器不支持该操作')
-    throw new Error(`请求失败 (${resp.status})`)
+    if (resp.status === 409) throw new Error('路径冲突')
+    if (resp.status >= 500) throw new Error(`服务器内部错误（${resp.status}）`)
+    throw new Error(`请求失败（${resp.status}）`)
   }
   return resp
 }
