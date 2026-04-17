@@ -39,17 +39,29 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEBUG: electron-builder
         run: |
-          npx electron-builder --${{ matrix.platform }} 2>&1
-          echo "electron-builder exit code: $?"
+          npx electron-builder --${{ matrix.platform }} 2>&1 | tee build-log.txt
+          exit_code=${PIPESTATUS[0]}
+          echo "exit_code=$exit_code"
+          exit $exit_code
+
+      - name: Upload build log (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ matrix.platform }}
+          path: build-log.txt
 
       - name: List release output
+        if: always()
         shell: bash
         run: |
           echo "=== release/ directory contents ==="
-          find release/ -maxdepth 2 -type f 2>/dev/null || echo "release/ not found or empty"
+          find release/ -maxdepth 3 2>/dev/null || echo "No release/ dir"
 
       - name: Upload artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.platform }}
