@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, session, ipcMain, net } from 'electron'
+import { app, BrowserWindow, shell, session, ipcMain, net, WebContentsView } from 'electron'
 import { join, dirname, extname } from 'path'
 import { fileURLToPath } from 'url'
 import { createServer } from 'http'
@@ -39,8 +39,7 @@ const MIME_TYPES: Record<string, string> = {
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
   '.ttf': 'font/ttf',
-  '.otf': 'font/otf',
-  '.eot': 'application/vnd.ms-fontobject',
+  '.otf': 'application/vnd.ms-font-object',
   '.mp3': 'audio/mpeg',
   '.wav': 'audio/wav',
   '.mp4': 'video/mp4',
@@ -142,46 +141,41 @@ ipcMain.handle('main-fetch', (_event, { url, headers }: { url: string; headers?:
   })
 })
 
-// ============ Bilibili Player Window Management ============
+// ============ Bilibili Player - Embedded WebContentsView ============
 
-let playerWindow: BrowserWindow | null = null
+let playerView: WebContentsView | null = null
 
-// Open B站 player in a separate dedicated window
-ipcMain.handle('open-bilibili-player', (_event, { url, title }: { url: string; title?: string }) => {
+// Show B站 player as an embedded view overlaid on the main window
+// bounds are from getBoundingClientRect() — relative to viewport, which maps to contentView coords
+ipcMain.handle('show-bilibili-player', (_event, { url, bounds }: { url: string; bounds: { x: number; y: number; width: number; height: number } }) => {
   if (!win) return
 
-  // Focus existing player window if it exists
-  if (playerWindow && !playerWindow.isDestroyed()) {
-    playerWindow.loadURL(url)
-    playerWindow.focus()
+  // If player view exists, just update URL and position
+  if (playerView) {
+    playerView.setBounds({
+      x: Math.round(bounds.x),
+      y: Math.round(bounds.y),
+      width: Math.round(bounds.width),
+      height: Math.round(bounds.height),
+    })
+    playerView.webContents.loadURL(url)
     return
   }
 
-  // Get main window position to center player relative to it
-  const mainWindowBounds = win.getBounds()
-  const playerWidth = 800
-  const playerHeight = Math.round(playerWidth * 9 / 16) + 60 // 16:9 + some padding
-
-  playerWindow = new BrowserWindow({
-    width: playerWidth,
-    height: playerHeight,
-    x: Math.round(mainWindowBounds.x + (mainWindowBounds.width - playerWidth) / 2),
-    y: Math.round(mainWindowBounds.y + (mainWindowBounds.height - playerHeight) / 2),
-    title: title ? `${title} - Bilibili` : 'Bilibili Player',
-    backgroundColor: '#000000',
-    autoHideMenuBar: true,
+  // Create new WebContentsView for Bilibili player
+  playerView = new WebContentsView({
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: false,
+      sandbox: true,
     },
   })
 
-  // Set a desktop User-Agent so B站 doesn't redirect to mobile player
-  playerWindow.webContents.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+  // Set desktop User-Agent
+  playerView.webContents.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 
-  // Set referer for all B站 requests (only)
-  playerWindow.webContents.session.webRequest.onBeforeSendHeaders((details, callback) => {
+  // Set referer for B站 requests
+  playerView.webContents.session.webRequest.onBeforeSendHeaders((details, callback) => {
     if (details.url.includes('bilibili.com') || details.url.includes('bilivideo.com') || details.url.includes('hdslb.com')) {
       details.requestHeaders = details.requestHeaders || {}
       if (!details.requestHeaders['Referer']) {
@@ -191,16 +185,13 @@ ipcMain.handle('open-bilibili-player', (_event, { url, title }: { url: string; t
     callback({ requestHeaders: details.requestHeaders })
   })
 
-  // For B站 player window: do NOT add CORS headers — the CDN already returns them.
-  // Adding them again causes duplicate '*, *' which browsers reject.
-  // Only strip X-Frame-Options and CSP for the player page itself.
-  playerWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+  // Do NOT add CORS headers for B站 CDN (they already have them; duplicating causes '*, *' error)
+  playerView.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     if (!details.url.startsWith('http')) {
       callback({})
       return
     }
     const responseHeaders = details.responseHeaders || {}
-    // Only modify B站 player.html page headers, NOT CDN resources
     if (details.url.includes('player.bilibili.com/player.html')) {
       responseHeaders['X-Frame-Options'] = []
       responseHeaders['Content-Security-Policy'] = []
@@ -208,56 +199,61 @@ ipcMain.handle('open-bilibili-player', (_event, { url, title }: { url: string; t
     callback({ responseHeaders })
   })
 
-  // Open external links in system browser
-  playerWindow.webContents.setWindowOpenHandler(({ url }) => {
+  // External links → system browser
+  playerView.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http')) {
       shell.openExternal(url)
     }
     return { action: 'deny' }
   })
 
-  // Debug
-  playerWindow.webContents.on('did-finish-load', () => {
-    console.log('[Main] Bilibili player window loaded successfully')
+  // Debug logging
+  playerView.webContents.on('did-finish-load', () => {
+    console.log('[Main] Bilibili player view loaded successfully')
   })
 
-  playerWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
-    console.log('[Main] Bilibili player window failed:', errorCode, errorDescription)
+  playerView.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
+    console.log('[Main] Bilibili player view failed:', errorCode, errorDescription)
   })
 
-  playerWindow.webContents.on('render-process-gone', (_event, details) => {
-    console.log('[Main] Bilibili player render process gone:', details.reason)
-  })
-
-  playerWindow.webContents.on('console-message', (_event, level, message) => {
+  playerView.webContents.on('console-message', (_event, level, message) => {
     console.log('[BilibiliPlayer]', message)
   })
 
-  playerWindow.webContents.on('did-navigate', (_event, url) => {
-    console.log('[Main] Bilibili player navigated to:', url.substring(0, 120))
+  // Position the view — bounds are relative to the contentView area
+  playerView.setBounds({
+    x: Math.round(bounds.x),
+    y: Math.round(bounds.y),
+    width: Math.round(bounds.width),
+    height: Math.round(bounds.height),
   })
 
-  // Log network errors for player window
-  playerWindow.webContents.session.webRequest.onErrorOccurred((details) => {
-    if (details.url.includes('bilibili.com') || details.url.includes('bilivideo.com') || details.url.includes('hdslb.com')) {
-      console.log('[Main] Player request FAILED:', details.error, details.url.substring(0, 120))
-    }
-  })
+  // Add to main window's contentView — this is the correct API for Electron 35
+  win.contentView.addChildView(playerView)
 
-  // Clean up when player window closes
-  playerWindow.on('closed', () => {
-    playerWindow = null
-  })
-
-  console.log('[Main] Opening Bilibili player window:', url.substring(0, 120))
-  playerWindow.loadURL(url)
+  console.log('[Main] Showing Bilibili player view at bounds:', bounds)
+  playerView.webContents.loadURL(url)
 })
 
-// Close the player window
-ipcMain.handle('close-bilibili-player', () => {
-  if (playerWindow && !playerWindow.isDestroyed()) {
-    playerWindow.close()
-    playerWindow = null
+// Update player position/size
+ipcMain.handle('update-bilibili-player-bounds', (_event, bounds: { x: number; y: number; width: number; height: number }) => {
+  if (playerView && win) {
+    playerView.setBounds({
+      x: Math.round(bounds.x),
+      y: Math.round(bounds.y),
+      width: Math.round(bounds.width),
+      height: Math.round(bounds.height),
+    })
+  }
+})
+
+// Hide/remove the player view
+ipcMain.handle('hide-bilibili-player', () => {
+  if (playerView && win) {
+    win.contentView.removeChildView(playerView)
+    playerView.webContents.close()
+    playerView = null
+    console.log('[Main] Bilibili player view removed')
   }
 })
 

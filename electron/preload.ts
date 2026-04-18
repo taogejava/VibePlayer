@@ -20,11 +20,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw new Error(err.message || 'Main process fetch failed')
       })
   },
-  // Bilibili player - open in separate window
-  openBilibiliPlayer: (url: string, title?: string) => {
-    return ipcRenderer.invoke('open-bilibili-player', { url, title })
+  // Bilibili player - embedded WebContentsView in main window
+  showBilibiliPlayer: (url: string, bounds: { x: number; y: number; width: number; height: number }) => {
+    return ipcRenderer.invoke('show-bilibili-player', { url, bounds })
   },
-  closeBilibiliPlayer: () => {
-    return ipcRenderer.invoke('close-bilibili-player')
+  updateBilibiliPlayerBounds: (bounds: { x: number; y: number; width: number; height: number }) => {
+    return ipcRenderer.invoke('update-bilibili-player-bounds', bounds)
+  },
+  hideBilibiliPlayer: () => {
+    return ipcRenderer.invoke('hide-bilibili-player')
   },
 })

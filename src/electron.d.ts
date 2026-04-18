@@ -10,8 +10,9 @@ interface ElectronAPI {
     url: string,
     options?: { headers?: Record<string, string> }
   ) => Promise<ElectronFetchResponse>
-  openBilibiliPlayer: (url: string, title?: string) => Promise<void>
-  closeBilibiliPlayer: () => Promise<void>
+  showBilibiliPlayer: (url: string, bounds: { x: number; y: number; width: number; height: number }) => Promise<void>
+  updateBilibiliPlayerBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<void>
+  hideBilibiliPlayer: () => Promise<void>
 }
 
 interface Window {

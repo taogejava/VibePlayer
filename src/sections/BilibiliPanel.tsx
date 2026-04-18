@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import type { BilibiliVideo } from '../hooks/useBilibili'
 
 interface Props {
@@ -30,7 +30,9 @@ export default function BilibiliPanel({
   onClearHistory,
 }: Props) {
   const [inputValue, setInputValue] = useState('')
+  const [isPlaying, setIsPlaying] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const playerContainerRef = useRef<HTMLDivElement>(null)
 
   const handlePaste = useCallback(() => {
     navigator.clipboard.readText().then(text => {
@@ -51,14 +53,61 @@ export default function BilibiliPanel({
     }
   }
 
-  // Open B站 player in a separate Electron window
+  // Open B站 player as embedded WebContentsView
   const handlePlay = useCallback(() => {
-    if (!currentVideo) return
+    if (!currentVideo || !playerContainerRef.current) return
     const baseUrl = getPlayerUrl(currentVideo)
     const url = baseUrl.replace('autoplay=0', 'autoplay=1')
-    console.log('[Bilibili] Opening player window:', url.substring(0, 100))
-    window.electronAPI?.openBilibiliPlayer(url, currentVideo.title)
+    const rect = playerContainerRef.current.getBoundingClientRect()
+    // getBoundingClientRect() returns coords relative to viewport,
+    // which maps directly to WebContentsView bounds (relative to contentView)
+    const bounds = {
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+    }
+    console.log('[Bilibili] Showing player at bounds:', bounds.x, bounds.y, bounds.width, bounds.height)
+    window.electronAPI?.showBilibiliPlayer(url, bounds)
+    setIsPlaying(true)
   }, [currentVideo, getPlayerUrl])
+
+  // Stop playing
+  const handleStop = useCallback(() => {
+    window.electronAPI?.hideBilibiliPlayer()
+    setIsPlaying(false)
+  }, [])
+
+  // Clean up player view on unmount
+  useEffect(() => {
+    return () => {
+      window.electronAPI?.hideBilibiliPlayer()
+    }
+  }, [])
+
+  // Update player bounds when window resizes
+  useEffect(() => {
+    if (!isPlaying) return
+    const updateBounds = () => {
+      if (!playerContainerRef.current) return
+      const rect = playerContainerRef.current.getBoundingClientRect()
+      window.electronAPI?.updateBilibiliPlayerBounds({
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+      })
+    }
+    window.addEventListener('resize', updateBounds)
+    const observer = new ResizeObserver(updateBounds)
+    if (playerContainerRef.current) {
+      observer.observe(playerContainerRef.current)
+    }
+    return () => {
+      window.removeEventListener('resize', updateBounds)
+      observer.disconnect()
+    }
+  }, [isPlaying])
 
   return (
     <div className="w-full flex flex-col h-full animate-fade-in">
@@ -119,39 +168,59 @@ export default function BilibiliPanel({
         </div>
       )}
 
-      {/* Video content - always show cover + info, clicking play opens separate window */}
+      {/* Video content */}
       {currentVideo && (
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           <div className="flex-1 min-h-0 flex flex-col gap-3">
-            {/* Cover image with play button overlay */}
+            {/* Player container - WebContentsView overlays on top of this div */}
             <div
-              onClick={handlePlay}
-              className="relative flex-1 min-h-0 rounded-xl overflow-hidden cursor-pointer group"
+              ref={playerContainerRef}
+              className="relative flex-1 min-h-0 rounded-xl overflow-hidden bg-black"
             >
-              <img
-                src={currentVideo.cover}
-                alt={currentVideo.title}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-              {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-              {/* Play button */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-pink-500/90 flex items-center justify-center shadow-2xl shadow-pink-500/50 group-hover:scale-110 group-hover:bg-pink-400 transition-all duration-300">
-                  <svg viewBox="0 0 24 24" fill="white" className="w-8 h-8 ml-1">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </div>
-              </div>
-              {/* Duration badge */}
-              <div className="absolute bottom-3 right-3 px-2 py-0.5 bg-black/60 rounded text-white/80 text-xs">
-                {formatDuration(currentVideo.duration)}
-              </div>
-              {/* Multi-P badge */}
-              {currentVideo.pages.length > 1 && (
-                <div className="absolute top-3 right-3 px-2 py-0.5 bg-purple-500/80 rounded text-white text-[10px]">
-                  P{currentVideo.page}/{currentVideo.pages.length}
-                </div>
+              {isPlaying ? (
+                <>
+                  {/* WebContentsView is overlaid by Electron on top of this container */}
+                  {/* Close button floats above the player */}
+                  <button
+                    onClick={handleStop}
+                    className="absolute top-2 right-2 z-50 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white/80 hover:text-white flex items-center justify-center transition-all duration-200"
+                    title="关闭播放器"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4">
+                      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Cover image with play button */}
+                  <img
+                    src={currentVideo.cover}
+                    alt={currentVideo.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div
+                    onClick={handlePlay}
+                    className="absolute inset-0 flex items-center justify-center cursor-pointer group"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-pink-500/90 flex items-center justify-center shadow-2xl shadow-pink-500/50 group-hover:scale-110 group-hover:bg-pink-400 transition-all duration-300">
+                      <svg viewBox="0 0 24 24" fill="white" className="w-8 h-8 ml-1">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                  {/* Duration badge */}
+                  <div className="absolute bottom-3 right-3 px-2 py-0.5 bg-black/60 rounded text-white/80 text-xs">
+                    {formatDuration(currentVideo.duration)}
+                  </div>
+                  {/* Multi-P badge */}
+                  {currentVideo.pages.length > 1 && (
+                    <div className="absolute top-3 right-3 px-2 py-0.5 bg-purple-500/80 rounded text-white text-[10px]">
+                      P{currentVideo.page}/{currentVideo.pages.length}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -162,12 +231,14 @@ export default function BilibiliPanel({
               </h4>
               <div className="flex items-center justify-between">
                 <p className="text-white/40 text-xs">{currentVideo.author}</p>
-                <button
-                  onClick={handlePlay}
-                  className="px-4 py-1.5 text-xs font-medium bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-400 hover:to-purple-400 transition-all duration-200 shadow-lg shadow-pink-500/20"
-                >
-                  播放视频
-                </button>
+                {!isPlaying && (
+                  <button
+                    onClick={handlePlay}
+                    className="px-4 py-1.5 text-xs font-medium bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-400 hover:to-purple-400 transition-all duration-200 shadow-lg shadow-pink-500/20"
+                  >
+                    播放视频
+                  </button>
+                )}
               </div>
               {/* Multi-P selector */}
               {currentVideo.pages.length > 1 && (
