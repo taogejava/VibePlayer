@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import ParticleBackground from './ParticleBackground'
 
-export type FeatureKey = 'music' | 'video' | 'bilibili' | 'url' | 'webdav' | 'alist'
+export type FeatureKey = 'music' | 'video' | 'bilibili' | 'url' | 'webdav' | 'alist' | 'online'
 
 interface FeatureCard {
   key: FeatureKey
@@ -103,6 +103,21 @@ const features: FeatureCard[] = [
         <path d="M14 32h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         <circle cx="38" cy="38" r="6" fill="currentColor" opacity="0.6" />
         <path d="M36 38l1.5 1.5 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    key: 'online' as FeatureKey,
+    title: '在线搜索',
+    subtitle: '搜索海量免费音乐，30 秒合法试听',
+    gradient: 'from-emerald-500 via-teal-500 to-cyan-500',
+    glow: 'rgba(16, 185, 129, 0.4)',
+    icon: (
+      <svg viewBox="0 0 48 48" fill="none" className="w-10 h-10">
+        <circle cx="21" cy="21" r="13" stroke="currentColor" strokeWidth="2" />
+        <path d="M32 32l9 9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M16 21h10M21 16v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="21" cy="21" r="5" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
       </svg>
     ),
   },

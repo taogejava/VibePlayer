@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, net } from 'electron'
+import { contextBridge, net } from 'electron'
 
 // Expose a safe HTTP fetch API through the main process
 // This bypasses CORS restrictions in the renderer process

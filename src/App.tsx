@@ -13,6 +13,7 @@ const featureToPanel: Record<FeatureKey, string> = {
   url: 'url',
   webdav: 'webdav',
   alist: 'alist',
+  online: 'online',
 }
 
 export default function App() {

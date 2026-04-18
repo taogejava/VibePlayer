@@ -16,6 +16,8 @@ import { useBilibili } from '../hooks/useBilibili'
 import { useWebDAV, type WebDAVFile } from '../hooks/useWebDAV'
 import { useAList, type AListFile } from '../hooks/useAList'
 import { useLyricsSearch } from '../hooks/useLyricsSearch'
+import { useOnlineSearch } from '../hooks/useOnlineSearch'
+import OnlineSearchPanel from './OnlineSearchPanel'
 
 export interface Song {
   id: number
@@ -114,10 +116,11 @@ function fileNodeToSong(node: FileNode): Song {
   }
 }
 
-type Panel = 'library' | 'bilibili' | 'video' | 'url' | 'webdav' | 'alist'
+type Panel = 'library' | 'bilibili' | 'video' | 'url' | 'webdav' | 'alist' | 'online'
 
 const PANEL_CONFIG: { key: Panel; label: string }[] = [
   { key: 'library', label: '听音乐' },
+  { key: 'online', label: '在线搜索' },
   { key: 'video', label: '看视频' },
   { key: 'bilibili', label: 'B站' },
   { key: 'url', label: '链接' },
@@ -191,6 +194,11 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
   // ---------- AList ----------
   const alist = useAList()
 
+  // ---------- Online Search ----------
+  const onlineSearch = useOnlineSearch()
+  const [onlineIsPlaying, setOnlineIsPlaying] = useState(false)
+  const onlineAudioRef = useRef<HTMLAudioElement | null>(null)
+
   // ---------- Lyrics search ----------
   const lyricsSearch = useLyricsSearch()
 
@@ -257,6 +265,44 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
       audioRef.current.volume = isMuted ? 0 : volume / 100
     }
   }, [volume, isMuted])
+
+  // ---------- Online Search handlers (must be after pauseAudio) ----------
+  const handleOnlineSelectTrack = useCallback((track: import('../hooks/useOnlineSearch').OnlineTrack) => {
+    onlineSearch.selectTrack(track)
+    if (onlineAudioRef.current) {
+      onlineAudioRef.current.pause()
+      onlineAudioRef.current = null
+    }
+    pauseAudio()
+    const audio = new Audio(track.previewUrl)
+    audio.volume = isMuted ? 0 : volume / 100
+    onlineAudioRef.current = audio
+    audio.play().then(() => setOnlineIsPlaying(true)).catch(() => setOnlineIsPlaying(false))
+    audio.onended = () => setOnlineIsPlaying(false)
+  }, [onlineSearch, pauseAudio, isMuted, volume])
+
+  const handleOnlineTogglePlay = useCallback(() => {
+    if (!onlineAudioRef.current) return
+    if (onlineIsPlaying) {
+      onlineAudioRef.current.pause()
+      setOnlineIsPlaying(false)
+    } else {
+      onlineAudioRef.current.play().then(() => setOnlineIsPlaying(true)).catch(() => {})
+    }
+  }, [onlineIsPlaying])
+
+  useEffect(() => {
+    if (onlineAudioRef.current) {
+      onlineAudioRef.current.volume = isMuted ? 0 : volume / 100
+    }
+  }, [volume, isMuted])
+
+  useEffect(() => {
+    if (panel !== 'online' && onlineAudioRef.current) {
+      onlineAudioRef.current.pause()
+      setOnlineIsPlaying(false)
+    }
+  }, [panel])
 
   // When current index changes AND it's a local file, play it
   useEffect(() => {
@@ -586,6 +632,12 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
                         <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
                       </svg>
                     )}
+                    {p.key === 'online' && (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="M21 21l-4.35-4.35" />
+                      </svg>
+                    )}
                     {p.key === 'video' && (
                       <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
                         <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/>
@@ -871,6 +923,19 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
                   onGoUp={alist.goUp}
                   onDisconnect={alist.disconnect}
                   onPlayFile={handlePlayAListFile}
+                />
+              )}
+              {panel === 'online' && (
+                <OnlineSearchPanel
+                  results={onlineSearch.results}
+                  loading={onlineSearch.loading}
+                  error={onlineSearch.error}
+                  query={onlineSearch.query}
+                  currentTrack={onlineSearch.currentTrack}
+                  isPlaying={onlineIsPlaying}
+                  onSearch={onlineSearch.search}
+                  onSelectTrack={handleOnlineSelectTrack}
+                  onTogglePlay={handleOnlineTogglePlay}
                 />
               )}
             </div>
