@@ -31,8 +31,8 @@ export default function BilibiliPanel({
 }: Props) {
   const [inputValue, setInputValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [hasInteracted, setHasInteracted] = useState(false)
+  const [playerReady, setPlayerReady] = useState(false)
+  const [playerUrl, setPlayerUrl] = useState('')
 
   const handlePaste = useCallback(() => {
     navigator.clipboard.readText().then(text => {
@@ -53,10 +53,21 @@ export default function BilibiliPanel({
     }
   }
 
-  // Reset interaction state when video changes
+  // When video changes, go back to preview mode (show cover, not player)
   useEffect(() => {
-    setHasInteracted(false)
+    setPlayerReady(false)
+    setPlayerUrl('')
   }, [currentVideo])
+
+  // Load iframe with autoplay when user clicks play
+  const handlePlay = useCallback(() => {
+    if (!currentVideo) return
+    // Use getPlayerUrl but force autoplay=1
+    const baseUrl = getPlayerUrl(currentVideo)
+    const url = baseUrl.replace('autoplay=0', 'autoplay=1')
+    setPlayerUrl(url)
+    setPlayerReady(true)
+  }, [currentVideo, getPlayerUrl])
 
   return (
     <div className="w-full flex flex-col h-full animate-fade-in">
@@ -117,85 +128,95 @@ export default function BilibiliPanel({
         </div>
       )}
 
-      {/* Current video info + iframe */}
+      {/* Video content */}
       {currentVideo && (
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          {/* iframe player - shown first, takes most space */}
-          <div className="flex-1 min-h-0 relative rounded-xl overflow-hidden shadow-2xl shadow-black/50 mb-3">
-            <iframe
-              ref={iframeRef}
-              src={getPlayerUrl(currentVideo)}
-              className="absolute inset-0 w-full h-full"
-              allowFullScreen
-              sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
-              referrerPolicy="no-referrer"
-            />
-            {/* Click to play hint overlay - shown on initial load */}
-            {!hasInteracted && (
+          {/* Stage 1: Preview (cover + info + play button) OR Stage 2: iframe player */}
+          {playerReady && playerUrl ? (
+            /* Stage 2: Player iframe */
+            <div className="flex-1 min-h-0 relative rounded-xl overflow-hidden shadow-2xl shadow-black/50 mb-3">
+              <iframe
+                src={playerUrl}
+                className="absolute inset-0 w-full h-full"
+                allowFullScreen
+                allow="autoplay; fullscreen"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation allow-autoplay"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          ) : (
+            /* Stage 1: Cover preview with play button */
+            <div className="flex-1 min-h-0 flex flex-col gap-3">
+              {/* Cover image with play button overlay */}
               <div
-                onClick={() => setHasInteracted(true)}
-                className="absolute inset-0 bg-black/30 flex items-center justify-center cursor-pointer z-10 hover:bg-black/40 transition-colors"
+                onClick={handlePlay}
+                className="relative flex-1 min-h-0 rounded-xl overflow-hidden cursor-pointer group"
               >
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-14 h-14 rounded-full bg-pink-500/80 flex items-center justify-center shadow-lg shadow-pink-500/40 hover:bg-pink-400/90 transition-colors">
-                    <svg viewBox="0 0 24 24" fill="white" className="w-7 h-7 ml-1">
+                <img
+                  src={currentVideo.cover}
+                  alt={currentVideo.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                {/* Play button */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-pink-500/90 flex items-center justify-center shadow-2xl shadow-pink-500/50 group-hover:scale-110 group-hover:bg-pink-400 transition-all duration-300">
+                    <svg viewBox="0 0 24 24" fill="white" className="w-8 h-8 ml-1">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   </div>
-                  <span className="text-white/70 text-xs">点击播放</span>
                 </div>
+                {/* Duration badge */}
+                <div className="absolute bottom-3 right-3 px-2 py-0.5 bg-black/60 rounded text-white/80 text-xs">
+                  {formatDuration(currentVideo.duration)}
+                </div>
+                {/* Multi-P badge */}
+                {currentVideo.pages.length > 1 && (
+                  <div className="absolute top-3 right-3 px-2 py-0.5 bg-purple-500/80 rounded text-white text-[10px]">
+                    P{currentVideo.page}/{currentVideo.pages.length}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Video info card */}
-          <div className="shrink-0 p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl">
-            <div className="flex gap-3">
-              <img
-                src={currentVideo.cover}
-                alt={currentVideo.title}
-                className="w-16 h-10 rounded-lg object-cover shrink-0 shadow-lg"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none'
-                }}
-              />
-              <div className="flex-1 min-w-0">
-                <h4 className="text-white/90 text-xs font-medium leading-snug line-clamp-1">
+              {/* Info card */}
+              <div className="shrink-0 p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl">
+                <h4 className="text-white/90 text-sm font-medium leading-snug line-clamp-2 mb-1.5">
                   {currentVideo.title}
                 </h4>
-                <p className="text-white/40 text-[10px] mt-0.5">
-                  {currentVideo.author}
-                  {currentVideo.pages.length > 1 && (
-                    <span className="ml-2 px-1.5 py-0.5 bg-purple-500/20 text-purple-300 rounded text-[10px]">
-                      P{currentVideo.page}/{currentVideo.pages.length}
-                    </span>
-                  )}
-                  <span className="ml-2">{formatDuration(currentVideo.duration)}</span>
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-white/40 text-xs">{currentVideo.author}</p>
+                  <button
+                    onClick={handlePlay}
+                    className="px-4 py-1.5 text-xs font-medium bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-400 hover:to-purple-400 transition-all duration-200 shadow-lg shadow-pink-500/20"
+                  >
+                    播放视频
+                  </button>
+                </div>
+                {/* Multi-P selector */}
+                {currentVideo.pages.length > 1 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {currentVideo.pages.map((p) => (
+                      <button
+                        key={p.page}
+                        onClick={() => {
+                          const updatedVideo = { ...currentVideo, page: p.page, duration: p.duration }
+                          onSelectHistory(updatedVideo)
+                        }}
+                        className={`px-2 py-0.5 text-[10px] rounded-md transition-all duration-200 ${
+                          p.page === currentVideo.page
+                            ? 'bg-pink-500/30 text-pink-300 border border-pink-500/30'
+                            : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
+                        }`}
+                      >
+                        P{p.page} {p.part}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-            {/* Multi-P selector */}
-            {currentVideo.pages.length > 1 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {currentVideo.pages.map((p) => (
-                  <button
-                    key={p.page}
-                    onClick={() => {
-                      const updatedVideo = { ...currentVideo, page: p.page, duration: p.duration }
-                      onSelectHistory(updatedVideo)
-                    }}
-                    className={`px-2 py-0.5 text-[10px] rounded-md transition-all duration-200 ${
-                      p.page === currentVideo.page
-                        ? 'bg-pink-500/30 text-pink-300 border border-pink-500/30'
-                        : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
-                    }`}
-                  >
-                    P{p.page} {p.part}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </div>
       )}
 
