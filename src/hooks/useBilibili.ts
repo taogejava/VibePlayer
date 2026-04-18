@@ -15,7 +15,7 @@ function parseBilibiliUrl(url: string): { type: 'bvid' | 'aid' | 'season' | 'epi
 
   // BV号直接输入
   if (/^BV[A-Za-z0-9]+$/i.test(url)) {
-    return { type: 'bvid', id: url.toUpperCase() }
+    return { type: 'bvid', id: url }
   }
 
   // AV号直接输入
@@ -40,7 +40,7 @@ function parseBilibiliUrl(url: string): { type: 'bvid' | 'aid' | 'season' | 'epi
       const bvMatch = pathname.match(/\/video\/(BV[A-Za-z0-9]+)/i)
       if (bvMatch) {
         const p = parsed.searchParams.get('p')
-        return { type: 'bvid', id: bvMatch[1].toUpperCase(), page: p ? parseInt(p) : undefined }
+        return { type: 'bvid', id: bvMatch[1], page: p ? parseInt(p) : undefined }
       }
 
       // AV号格式: /video/av12345

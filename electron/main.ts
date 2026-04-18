@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, session } from 'electron'
+import { app, BrowserWindow, shell, session, ipcMain, net } from 'electron'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -21,6 +21,55 @@ const RENDERER_DIST = join(__dirname, '../dist')
 const VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? join(__dirname, '../public')
   : RENDERER_DIST
+
+// IPC handler: main process HTTP fetch (bypasses CORS in renderer)
+ipcMain.handle('main-fetch', (_event, { url, headers }: { url: string; headers?: Record<string, string> }) => {
+  return new Promise<{ ok: boolean; status: number; body: string }>((resolve, reject) => {
+    const request = net.request({ url, method: 'GET' })
+
+    // Set custom headers
+    if (headers) {
+      for (const [key, value] of Object.entries(headers)) {
+        request.setHeader(key, value)
+      }
+    }
+
+    // Default headers
+    if (!headers?.['User-Agent']) {
+      request.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    }
+    if (!headers?.['Referer'] && url.includes('bilibili.com')) {
+      request.setHeader('Referer', 'https://www.bilibili.com')
+    }
+
+    let dataChunks: Buffer[] = []
+
+    request.on('response', (response) => {
+      response.on('data', (chunk: Buffer) => {
+        dataChunks.push(chunk)
+      })
+
+      response.on('end', () => {
+        const body = Buffer.concat(dataChunks).toString('utf-8')
+        resolve({
+          ok: response.statusCode >= 200 && response.statusCode < 300,
+          status: response.statusCode,
+          body,
+        })
+      })
+
+      response.on('error', (err: Error) => {
+        reject(new Error(err.message))
+      })
+    })
+
+    request.on('error', (err: Error) => {
+      reject(new Error(err.message))
+    })
+
+    request.end()
+  })
+})
 
 let win: BrowserWindow | null = null
 
