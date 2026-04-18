@@ -81,14 +81,44 @@ async function fetchVideoInfo(parsed: { type: string; id: string; page?: number 
       return null
     }
 
-    const resp = await fetch(apiUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-      credentials: 'include',
-    })
+    // Use Electron's main-process fetch to bypass CORS (available in packaged app)
+    // Fall back to standard fetch for dev mode in browser
+    let resp: Response | ElectronFetchResponse
+    if (window.electronAPI) {
+      try {
+        resp = await window.electronAPI.fetch(apiUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Referer': 'https://www.bilibili.com',
+          },
+        })
+      } catch (err: any) {
+        throw new Error(`网络请求失败：${err.message || '未知错误'}。\n请检查网络连接后重试。`)
+      }
+    } else {
+      try {
+        resp = await fetch(apiUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Referer': 'https://www.bilibili.com',
+          },
+        })
+      } catch (err: any) {
+        throw new Error(`网络请求失败：${err.message || '未知错误'}。\n请检查网络连接后重试。`)
+      }
+    }
 
     const json = await resp.json()
     if (json.code !== 0) {
-      throw new Error(json.message || '获取视频信息失败')
+      const apiMsg = json.message || '未知错误'
+      // B站常见错误码
+      if (json.code === -400 || json.code === 62002) {
+        throw new Error(`视频不存在或已被删除（${apiMsg}），请检查BV号是否正确。`)
+      }
+      if (json.code === -352) {
+        throw new Error('请求被风控拦截，请稍后再试。')
+      }
+      throw new Error(`B站API返回错误：${apiMsg}（code: ${json.code}）`)
     }
 
     const data = json.data
