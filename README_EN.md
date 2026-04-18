@@ -15,10 +15,11 @@
 | 💿 Vinyl Record Animation | Auto-rotating disc when playing, conic gradient textures with dynamic glow |
 | 📊 Spectrum Visualizer | 32 colorful spectrum bars pulsing to the music, colors change with song theme |
 | 🎵 Online Lyrics Search | Search online lyrics for local songs without embedded lyrics, with LRC sync scrolling |
+| 🎵 Online Music Search | iTunes API fuzzy search, 30s royalty-free preview, one-click add to playlist |
 | 📁 Local Music Library | Select local folders, recursive scan with directory tree display, click to play (10 formats) |
 | 🎬 Local Video Player | Scan local video files, full player controls (fullscreen/speed/seek) |
 | 🔗 URL Direct Play | Paste any audio/video URL to play directly, auto-detect file type |
-| 📺 Bilibili Player | Paste Bilibili links, resolve video info, embedded player |
+| 📺 Bilibili Player | Paste Bilibili links, resolve video info, embedded player view inside the window |
 | ☁️ WebDAV Cloud Storage | Connect to Synology/QNAP/NextCloud, browse and play media files |
 | 📦 AList Aggregator | Connect once to access Baidu Drive, Aliyun Drive, 123 Drive, and more |
 | 🎚️ Full Playback Controls | Progress bar seek, volume slider, prev/next, play/pause, playback speed |
