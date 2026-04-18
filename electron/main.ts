@@ -32,7 +32,7 @@ function createWindow() {
     minHeight: 600,
     icon: join(VITE_PUBLIC, 'icon.png'),
     webPreferences: {
-      preload: join(__dirname, 'preload.mjs'),
+      preload: join(__dirname, 'preload.js'),
       // Security: enable context isolation
       contextIsolation: true,
       nodeIntegration: false,
