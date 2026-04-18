@@ -32,6 +32,7 @@ export default function BilibiliPanel({
   const [inputValue, setInputValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [hasInteracted, setHasInteracted] = useState(false)
 
   const handlePaste = useCallback(() => {
     navigator.clipboard.readText().then(text => {
@@ -52,16 +53,9 @@ export default function BilibiliPanel({
     }
   }
 
-  // Auto-resize iframe when video changes
+  // Reset interaction state when video changes
   useEffect(() => {
-    if (currentVideo && iframeRef.current) {
-      iframeRef.current.style.height = '0px'
-      requestAnimationFrame(() => {
-        if (iframeRef.current) {
-          iframeRef.current.style.height = '280px'
-        }
-      })
-    }
+    setHasInteracted(false)
   }, [currentVideo])
 
   return (
@@ -125,31 +119,59 @@ export default function BilibiliPanel({
 
       {/* Current video info + iframe */}
       {currentVideo && (
-        <div className="flex-1 min-h-0 flex flex-col mb-3 overflow-hidden">
-          {/* Video card */}
-          <div className="shrink-0 mb-3 p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* iframe player - shown first, takes most space */}
+          <div className="flex-1 min-h-0 relative rounded-xl overflow-hidden shadow-2xl shadow-black/50 mb-3">
+            <iframe
+              ref={iframeRef}
+              src={getPlayerUrl(currentVideo)}
+              className="absolute inset-0 w-full h-full"
+              allowFullScreen
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
+              referrerPolicy="no-referrer"
+            />
+            {/* Click to play hint overlay - shown on initial load */}
+            {!hasInteracted && (
+              <div
+                onClick={() => setHasInteracted(true)}
+                className="absolute inset-0 bg-black/30 flex items-center justify-center cursor-pointer z-10 hover:bg-black/40 transition-colors"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-14 h-14 rounded-full bg-pink-500/80 flex items-center justify-center shadow-lg shadow-pink-500/40 hover:bg-pink-400/90 transition-colors">
+                    <svg viewBox="0 0 24 24" fill="white" className="w-7 h-7 ml-1">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                  <span className="text-white/70 text-xs">点击播放</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Video info card */}
+          <div className="shrink-0 p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl">
             <div className="flex gap-3">
               <img
                 src={currentVideo.cover}
                 alt={currentVideo.title}
-                className="w-24 h-16 rounded-lg object-cover shrink-0 shadow-lg"
+                className="w-16 h-10 rounded-lg object-cover shrink-0 shadow-lg"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none'
                 }}
               />
               <div className="flex-1 min-w-0">
-                <h4 className="text-white/90 text-sm font-medium leading-snug line-clamp-2 mb-1">
+                <h4 className="text-white/90 text-xs font-medium leading-snug line-clamp-1">
                   {currentVideo.title}
                 </h4>
-                <p className="text-white/40 text-xs">
+                <p className="text-white/40 text-[10px] mt-0.5">
                   {currentVideo.author}
                   {currentVideo.pages.length > 1 && (
                     <span className="ml-2 px-1.5 py-0.5 bg-purple-500/20 text-purple-300 rounded text-[10px]">
                       P{currentVideo.page}/{currentVideo.pages.length}
                     </span>
                   )}
+                  <span className="ml-2">{formatDuration(currentVideo.duration)}</span>
                 </p>
-                <p className="text-white/30 text-xs mt-0.5">{formatDuration(currentVideo.duration)}</p>
               </div>
             </div>
             {/* Multi-P selector */}
@@ -173,19 +195,6 @@ export default function BilibiliPanel({
                 ))}
               </div>
             )}
-          </div>
-
-          {/* iframe player */}
-          <div className="flex-1 min-h-0 relative rounded-xl overflow-hidden shadow-2xl shadow-black/50">
-            <iframe
-              ref={iframeRef}
-              src={getPlayerUrl(currentVideo)}
-              className="absolute inset-0 w-full h-full"
-              style={{ transition: 'height 0.4s ease-out' }}
-              allowFullScreen
-              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-              referrerPolicy="no-referrer"
-            />
           </div>
         </div>
       )}
