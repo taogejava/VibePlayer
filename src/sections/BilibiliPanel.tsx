@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import type { BilibiliVideo } from '../hooks/useBilibili'
 
 interface Props {
@@ -31,8 +31,6 @@ export default function BilibiliPanel({
 }: Props) {
   const [inputValue, setInputValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
-  const [playerReady, setPlayerReady] = useState(false)
-  const [playerUrl, setPlayerUrl] = useState('')
 
   const handlePaste = useCallback(() => {
     navigator.clipboard.readText().then(text => {
@@ -53,20 +51,13 @@ export default function BilibiliPanel({
     }
   }
 
-  // When video changes, go back to preview mode (show cover, not player)
-  useEffect(() => {
-    setPlayerReady(false)
-    setPlayerUrl('')
-  }, [currentVideo])
-
-  // Load iframe with autoplay when user clicks play
+  // Open B站 player in a separate Electron window
   const handlePlay = useCallback(() => {
     if (!currentVideo) return
-    // Use getPlayerUrl but force autoplay=1
     const baseUrl = getPlayerUrl(currentVideo)
     const url = baseUrl.replace('autoplay=0', 'autoplay=1')
-    setPlayerUrl(url)
-    setPlayerReady(true)
+    console.log('[Bilibili] Opening player window:', url.substring(0, 100))
+    window.electronAPI?.openBilibiliPlayer(url, currentVideo.title)
   }, [currentVideo, getPlayerUrl])
 
   return (
@@ -128,94 +119,79 @@ export default function BilibiliPanel({
         </div>
       )}
 
-      {/* Video content */}
+      {/* Video content - always show cover + info, clicking play opens separate window */}
       {currentVideo && (
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          {/* Stage 1: Preview (cover + info + play button) OR Stage 2: iframe player */}
-          {playerReady && playerUrl ? (
-            /* Stage 2: Player iframe */
-            <div className="flex-1 min-h-0 relative rounded-xl overflow-hidden shadow-2xl shadow-black/50 mb-3">
-              <iframe
-                src={playerUrl}
-                className="absolute inset-0 w-full h-full"
-                allowFullScreen
-                allow="autoplay; fullscreen; encrypted-media"
-                referrerPolicy="no-referrer-when-downgrade"
+          <div className="flex-1 min-h-0 flex flex-col gap-3">
+            {/* Cover image with play button overlay */}
+            <div
+              onClick={handlePlay}
+              className="relative flex-1 min-h-0 rounded-xl overflow-hidden cursor-pointer group"
+            >
+              <img
+                src={currentVideo.cover}
+                alt={currentVideo.title}
+                className="absolute inset-0 w-full h-full object-cover"
               />
-            </div>
-          ) : (
-            /* Stage 1: Cover preview with play button */
-            <div className="flex-1 min-h-0 flex flex-col gap-3">
-              {/* Cover image with play button overlay */}
-              <div
-                onClick={handlePlay}
-                className="relative flex-1 min-h-0 rounded-xl overflow-hidden cursor-pointer group"
-              >
-                <img
-                  src={currentVideo.cover}
-                  alt={currentVideo.title}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                {/* Play button */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-pink-500/90 flex items-center justify-center shadow-2xl shadow-pink-500/50 group-hover:scale-110 group-hover:bg-pink-400 transition-all duration-300">
-                    <svg viewBox="0 0 24 24" fill="white" className="w-8 h-8 ml-1">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              {/* Play button */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-pink-500/90 flex items-center justify-center shadow-2xl shadow-pink-500/50 group-hover:scale-110 group-hover:bg-pink-400 transition-all duration-300">
+                  <svg viewBox="0 0 24 24" fill="white" className="w-8 h-8 ml-1">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
                 </div>
-                {/* Duration badge */}
-                <div className="absolute bottom-3 right-3 px-2 py-0.5 bg-black/60 rounded text-white/80 text-xs">
-                  {formatDuration(currentVideo.duration)}
-                </div>
-                {/* Multi-P badge */}
-                {currentVideo.pages.length > 1 && (
-                  <div className="absolute top-3 right-3 px-2 py-0.5 bg-purple-500/80 rounded text-white text-[10px]">
-                    P{currentVideo.page}/{currentVideo.pages.length}
-                  </div>
-                )}
               </div>
+              {/* Duration badge */}
+              <div className="absolute bottom-3 right-3 px-2 py-0.5 bg-black/60 rounded text-white/80 text-xs">
+                {formatDuration(currentVideo.duration)}
+              </div>
+              {/* Multi-P badge */}
+              {currentVideo.pages.length > 1 && (
+                <div className="absolute top-3 right-3 px-2 py-0.5 bg-purple-500/80 rounded text-white text-[10px]">
+                  P{currentVideo.page}/{currentVideo.pages.length}
+                </div>
+              )}
+            </div>
 
-              {/* Info card */}
-              <div className="shrink-0 p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl">
-                <h4 className="text-white/90 text-sm font-medium leading-snug line-clamp-2 mb-1.5">
-                  {currentVideo.title}
-                </h4>
-                <div className="flex items-center justify-between">
-                  <p className="text-white/40 text-xs">{currentVideo.author}</p>
-                  <button
-                    onClick={handlePlay}
-                    className="px-4 py-1.5 text-xs font-medium bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-400 hover:to-purple-400 transition-all duration-200 shadow-lg shadow-pink-500/20"
-                  >
-                    播放视频
-                  </button>
-                </div>
-                {/* Multi-P selector */}
-                {currentVideo.pages.length > 1 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {currentVideo.pages.map((p) => (
-                      <button
-                        key={p.page}
-                        onClick={() => {
-                          const updatedVideo = { ...currentVideo, page: p.page, duration: p.duration }
-                          onSelectHistory(updatedVideo)
-                        }}
-                        className={`px-2 py-0.5 text-[10px] rounded-md transition-all duration-200 ${
-                          p.page === currentVideo.page
-                            ? 'bg-pink-500/30 text-pink-300 border border-pink-500/30'
-                            : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
-                        }`}
-                      >
-                        P{p.page} {p.part}
-                      </button>
-                    ))}
-                  </div>
-                )}
+            {/* Info card */}
+            <div className="shrink-0 p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl">
+              <h4 className="text-white/90 text-sm font-medium leading-snug line-clamp-2 mb-1.5">
+                {currentVideo.title}
+              </h4>
+              <div className="flex items-center justify-between">
+                <p className="text-white/40 text-xs">{currentVideo.author}</p>
+                <button
+                  onClick={handlePlay}
+                  className="px-4 py-1.5 text-xs font-medium bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-400 hover:to-purple-400 transition-all duration-200 shadow-lg shadow-pink-500/20"
+                >
+                  播放视频
+                </button>
               </div>
+              {/* Multi-P selector */}
+              {currentVideo.pages.length > 1 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {currentVideo.pages.map((p) => (
+                    <button
+                      key={p.page}
+                      onClick={() => {
+                        const updatedVideo = { ...currentVideo, page: p.page, duration: p.duration }
+                        onSelectHistory(updatedVideo)
+                      }}
+                      className={`px-2 py-0.5 text-[10px] rounded-md transition-all duration-200 ${
+                        p.page === currentVideo.page
+                          ? 'bg-pink-500/30 text-pink-300 border border-pink-500/30'
+                          : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
+                      }`}
+                    >
+                      P{p.page} {p.part}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
 

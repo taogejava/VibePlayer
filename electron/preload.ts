@@ -20,4 +20,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw new Error(err.message || 'Main process fetch failed')
       })
   },
+  // Bilibili player - open in separate window
+  openBilibiliPlayer: (url: string, title?: string) => {
+    return ipcRenderer.invoke('open-bilibili-player', { url, title })
+  },
+  closeBilibiliPlayer: () => {
+    return ipcRenderer.invoke('close-bilibili-player')
+  },
 })
