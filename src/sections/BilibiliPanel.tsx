@@ -139,9 +139,8 @@ export default function BilibiliPanel({
                 src={playerUrl}
                 className="absolute inset-0 w-full h-full"
                 allowFullScreen
-                allow="autoplay; fullscreen"
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation allow-autoplay"
-                referrerPolicy="no-referrer"
+                allow="autoplay; fullscreen; encrypted-media"
+                referrerPolicy="no-referrer-when-downgrade"
               />
             </div>
           ) : (

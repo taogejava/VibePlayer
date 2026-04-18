@@ -95,6 +95,18 @@ function createWindow() {
     show: false, // Show when ready to prevent white flash
   })
 
+  // Allow B站 player iframe to load properly
+  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    // Set Referer for B站 player requests so the player doesn't refuse to load
+    if (details.url.includes('player.bilibili.com') || details.url.includes('bilivideo.com') || details.url.includes('bilibili.com')) {
+      details.requestHeaders = details.requestHeaders || {}
+      if (!details.requestHeaders['Referer']) {
+        details.requestHeaders['Referer'] = 'https://www.bilibili.com'
+      }
+    }
+    callback({ requestHeaders: details.requestHeaders })
+  })
+
   // Open external links in system browser
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http')) {
