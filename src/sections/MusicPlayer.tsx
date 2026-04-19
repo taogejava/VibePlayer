@@ -35,9 +35,9 @@ export interface Song {
 export const DEMO_SONGS: Song[] = [
   {
     id: 1,
-    title: 'Neon Dreams',
-    artist: 'Synthwave Collective',
-    album: 'Midnight City',
+    title: '渡口',
+    artist: '蔡琴',
+    album: '民歌蔡琴',
     duration: 245,
     cover: '',
     color: ['#7c3aed', '#2563eb', '#0ea5e9'],
@@ -135,7 +135,7 @@ interface MusicPlayerProps {
 
 export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerProps = {}) {
   // ---------- Demo / library state ----------
-  const [songs, setSongs] = useState<Song[]>(DEMO_SONGS)
+  const [songs, setSongs] = useState<Song[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -145,18 +145,18 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
   const [isShuffled, setIsShuffled] = useState(false)
   const [repeatMode, setRepeatMode] = useState<'none' | 'one' | 'all'>('all')
   const [panel, setPanel] = useState<Panel>((initialPanel as Panel) || 'library')
-  const [liked, setLiked] = useState<Set<number>>(new Set([1, 3]))
+  const [liked, setLiked] = useState<Set<number>>(new Set())
 
   // ---------- Audio element ----------
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const song = songs[currentIndex] ?? DEMO_SONGS[0]
+  const song = songs[currentIndex] ?? null
 
   // ---------- Local audio library ----------
   const { tree, loading, rootName, error: libError, openFolder, toggleExpand, restoreLastFolder } = useLocalLibrary()
   const [currentLocalFileId, setCurrentLocalFileId] = useState<string | null>(null)
-  const [rightPanel, setRightPanel] = useState<'list' | 'lyrics' | null>('list')
+  const [rightPanel, setRightPanel] = useState<'list' | 'lyrics' | null>(null)
 
   // Restore last folder on mount
   useEffect(() => {
@@ -176,6 +176,11 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
 
   // ---------- Local video library ----------
   const videoLib = useVideoLibrary()
+
+  // Restore last video folder on mount
+  useEffect(() => {
+    videoLib.restoreLastFolder()
+  }, [videoLib.restoreLastFolder])
   const [currentVideoFileId, setCurrentVideoFileId] = useState<string | null>(null)
   const [currentVideoSrc, setCurrentVideoSrc] = useState<string | null>(null)
   const [currentVideoTitle, setCurrentVideoTitle] = useState<string | null>(null)
@@ -204,6 +209,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
 
   // Auto-search lyrics for local files when song changes
   useEffect(() => {
+    if (!song) return
     if (song.fileUrl) {
       // Local file: auto-search lyrics silently
       lyricsSearch.autoSearch(song.title, song.artist)
@@ -211,7 +217,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
       // Demo song: clear any online lyrics
       lyricsSearch.clearLyrics()
     }
-  }, [song.id, song.title, song.artist, song.fileUrl]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [song, lyricsSearch])
 
   // ---------- Audio helpers ----------
   const clearTimer = () => {
@@ -269,17 +275,31 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
   // ---------- Online Search handlers (must be after pauseAudio) ----------
   const handleOnlineSelectTrack = useCallback((track: import('../hooks/useOnlineSearch').OnlineTrack) => {
     onlineSearch.selectTrack(track)
-    if (onlineAudioRef.current) {
-      onlineAudioRef.current.pause()
-      onlineAudioRef.current = null
+    
+    // Check if we're already playing this track
+    const isSameTrack = onlineAudioRef.current && onlineAudioRef.current.src === track.previewUrl
+    
+    if (isSameTrack && onlineIsPlaying) {
+      // Pause if same track is playing
+      onlineAudioRef.current?.pause()
+      setOnlineIsPlaying(false)
+    } else if (isSameTrack && !onlineIsPlaying) {
+      // Resume if same track is paused
+      onlineAudioRef.current?.play().then(() => setOnlineIsPlaying(true)).catch(() => {})
+    } else {
+      // Play new track
+      if (onlineAudioRef.current) {
+        onlineAudioRef.current.pause()
+        onlineAudioRef.current = null
+      }
+      pauseAudio()
+      const audio = new Audio(track.previewUrl)
+      audio.volume = isMuted ? 0 : volume / 100
+      onlineAudioRef.current = audio
+      audio.play().then(() => setOnlineIsPlaying(true)).catch(() => setOnlineIsPlaying(false))
+      audio.onended = () => setOnlineIsPlaying(false)
     }
-    pauseAudio()
-    const audio = new Audio(track.previewUrl)
-    audio.volume = isMuted ? 0 : volume / 100
-    onlineAudioRef.current = audio
-    audio.play().then(() => setOnlineIsPlaying(true)).catch(() => setOnlineIsPlaying(false))
-    audio.onended = () => setOnlineIsPlaying(false)
-  }, [onlineSearch, pauseAudio, isMuted, volume])
+  }, [onlineSearch, pauseAudio, isMuted, volume, onlineIsPlaying])
 
   const handleOnlineTogglePlay = useCallback(() => {
     if (!onlineAudioRef.current) return
@@ -404,6 +424,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
     if (!node.fileHandle) return
     const newSong = fileNodeToSong(node)
     setCurrentLocalFileId(node.id)
+    setRightPanel('list')
 
     setSongs(prev => {
       const existingIdx = prev.findIndex(s => s.fileNode?.id === node.id)
@@ -516,6 +537,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
   }, [alist, handlePlayUrl, pauseAudio])
 
   const toggleLike = () => {
+    if (!song) return
     setLiked(prev => {
       const next = new Set(prev)
       if (next.has(song.id)) next.delete(song.id)
@@ -524,7 +546,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
     })
   }
 
-  const effectiveDuration = song.fileUrl ? duration : song.duration
+  const effectiveDuration = song ? (song.fileUrl ? duration : song.duration) : 0
 
   // Determine if we should show the video player overlay
   const showVideoOverlay = currentVideoSrc && (panel === 'video' || isVideoPlaying)
@@ -532,23 +554,33 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
   return (
     <div
       className="relative w-full h-full flex items-center justify-center overflow-hidden transition-all duration-1000"
-      style={{
-        background: `radial-gradient(ellipse at 30% 30%, ${song.color[0]}33 0%, transparent 60%),
-                     radial-gradient(ellipse at 70% 70%, ${song.color[2]}33 0%, transparent 60%),
-                     #080812`,
-      }}
+      style={{ background: '#080812' }}
     >
-      <ParticleBackground colors={song.color} isPlaying={isPlaying} />
+      {song ? (
+        <>
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `radial-gradient(ellipse at 30% 30%, ${song.color[0]}33 0%, transparent 60%),
+                           radial-gradient(ellipse at 70% 70%, ${song.color[2]}33 0%, transparent 60%),
+                           #080812`,
+            }}
+          />
+          <ParticleBackground colors={song.color} isPlaying={isPlaying} />
 
-      {/* Ambient blobs */}
-      <div
-        className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full opacity-20 blur-[120px] pointer-events-none transition-all duration-2000 animated-gradient"
-        style={{ background: `radial-gradient(circle, ${song.color[0]} 0%, ${song.color[1]} 100%)` }}
-      />
-      <div
-        className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full opacity-20 blur-[100px] pointer-events-none transition-all duration-2000 animated-gradient"
-        style={{ background: `radial-gradient(circle, ${song.color[2]} 0%, ${song.color[1]} 100%)` }}
-      />
+          {/* Ambient blobs */}
+          <div
+            className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full opacity-20 blur-[120px] pointer-events-none transition-all duration-2000 animated-gradient"
+            style={{ background: `radial-gradient(circle, ${song.color[0]} 0%, ${song.color[1]} 100%)` }}
+          />
+          <div
+            className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full opacity-20 blur-[100px] pointer-events-none transition-all duration-2000 animated-gradient"
+            style={{ background: `radial-gradient(circle, ${song.color[2]} 0%, ${song.color[1]} 100%)` }}
+          />
+        </>
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black" />
+      )}
 
       {/* Video player overlay */}
       {showVideoOverlay && (
@@ -609,7 +641,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
                 </button>
               )}
               <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ background: `linear-gradient(135deg, ${song.color[0]}, ${song.color[1]})` }}>
+                style={{ background: `linear-gradient(135deg, ${song?.color?.[0] || '#7c3aed'}, ${song?.color?.[1] || '#2563eb'})` }}>
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white">
                   <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
                 </svg>
@@ -681,92 +713,112 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
                 className="flex flex-col items-center shrink-0 transition-all duration-500 ease-out relative z-10 flex-1"
                 style={{ paddingRight: rightPanel ? 296 : 0 }}
               >
-                {/* ═══════════════ SINGLE LAYOUT — always the same ═══════════════ */}
-              {/* Album Cover — clickable to toggle lyrics panel */}
-              <div
-                className="relative flex items-center justify-center transition-all duration-500 ease-out cursor-pointer"
-                style={{ width: 200, height: 200, marginTop: 24, paddingTop: 12, paddingBottom: 12 }}
-                onClick={() => setRightPanel(p => p === 'lyrics' ? 'list' : 'lyrics')}
-              >
-                <div
-                  className="absolute rounded-full opacity-60 blur-lg transition-all duration-1000"
-                  style={{ background: `conic-gradient(${song.color[0]}, ${song.color[1]}, ${song.color[2]}, ${song.color[0]})`, top: -12, left: -12, width: 'calc(100% + 24px)', height: 'calc(100% + 24px)' }}
-                />
-                <div
-                  className={`relative rounded-full ${isPlaying ? 'vinyl-spin' : 'vinyl-paused'} transition-all duration-500`}
-                  style={{ width: '12rem', height: '12rem', animationDuration: isPlaying ? '8s' : '0s' }}
-                >
+                {song ? (
+                  <>
+                    {/* ═══════════════ SINGLE LAYOUT — always the same ═══════════════ */}
+                  {/* Album Cover — clickable to toggle lyrics panel */}
                   <div
-                    className="absolute inset-0 rounded-full"
-                    style={{
-                      background: `conic-gradient(
-                        ${song.color[0]}cc 0deg, ${song.color[1]}cc 120deg,
-                        ${song.color[2]}cc 240deg, ${song.color[0]}cc 360deg
-                      )`,
-                      boxShadow: `0 0 30px ${song.color[0]}88, 0 0 60px ${song.color[1]}44`,
-                    }}
-                  />
-                  {[30, 50, 70, 90, 110].map(r => (
-                    <div key={r} className="absolute rounded-full border border-black/20"
-                      style={{
-                        top: `calc(50% - ${r / 2 * (192 / 110)}px)`,
-                        left: `calc(50% - ${r / 2 * (192 / 110)}px)`,
-                        width: r * (192 / 110), height: r * (192 / 110),
-                      }}
+                    className="relative flex items-center justify-center transition-all duration-500 ease-out cursor-pointer"
+                    style={{ width: 200, height: 200, marginTop: 24, paddingTop: 12, paddingBottom: 12 }}
+                    onClick={() => setRightPanel(p => p === 'lyrics' ? 'list' : 'lyrics')}
+                  >
+                    <div
+                      className="absolute rounded-full opacity-60 blur-lg transition-all duration-1000"
+                      style={{ background: `conic-gradient(${song.color[0]}, ${song.color[1]}, ${song.color[2]}, ${song.color[0]})`, top: -12, left: -12, width: 'calc(100% + 24px)', height: 'calc(100% + 24px)' }}
                     />
-                  ))}
-                  <AlbumArt song={song} />
-                  <div className="absolute w-6 h-6 rounded-full bg-[#080812] border-2 border-white/10"
-                    style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
-                </div>
-              </div>
+                    <div
+                      className={`relative rounded-full ${isPlaying ? 'vinyl-spin' : 'vinyl-paused'} transition-all duration-500`}
+                      style={{ width: '12rem', height: '12rem', animationDuration: isPlaying ? '8s' : '0s' }}
+                    >
+                      <div
+                        className="absolute inset-0 rounded-full"
+                        style={{
+                          background: `conic-gradient(
+                            ${song.color[0]}cc 0deg, ${song.color[1]}cc 120deg,
+                            ${song.color[2]}cc 240deg, ${song.color[0]}cc 360deg
+                          )`,
+                          boxShadow: `0 0 30px ${song.color[0]}88, 0 0 60px ${song.color[1]}44`,
+                        }}
+                      />
+                      {[30, 50, 70, 90, 110].map(r => (
+                        <div key={r} className="absolute rounded-full border border-black/20"
+                          style={{
+                            top: `calc(50% - ${r / 2 * (192 / 110)}px)`,
+                            left: `calc(50% - ${r / 2 * (192 / 110)}px)`,
+                            width: r * (192 / 110), height: r * (192 / 110),
+                          }}
+                        />
+                      ))}
+                      <AlbumArt song={song} />
+                      <div className="absolute w-6 h-6 rounded-full bg-[#080812] border-2 border-white/10"
+                        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                    </div>
+                  </div>
 
-              {/* Song info */}
-              <div className="text-center mt-4 w-full px-2">
-                <div className="flex items-center justify-center gap-3 mb-1">
-                  <h2 className="text-white font-bold truncate shimmer-text text-xl max-w-[200px]">
-                    {song.title}
-                  </h2>
-                  <button onClick={(e) => { e.stopPropagation(); toggleLike() }} className="shrink-0 transition-transform active:scale-125">
-                    {liked.has(song.id) ? (
-                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-pink-500">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                  {/* Song info */}
+                  <div className="text-center mt-4 w-full px-2">
+                    <div className="flex items-center justify-center gap-3 mb-1">
+                      <h2 className="text-white font-bold truncate shimmer-text text-xl max-w-[200px]">
+                        {song.title}
+                      </h2>
+                      <button onClick={(e) => { e.stopPropagation(); toggleLike() }} className="shrink-0 transition-transform active:scale-125">
+                        {liked.has(song.id) ? (
+                          <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-pink-500">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5 text-white/40 hover:text-pink-400 transition-colors">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-white/60 text-sm">{song.artist}</p>
+                    <p className="text-white/30 text-xs mt-0.5">{song.album}</p>
+                  </div>
+
+                  <div className="w-full mt-3 cursor-pointer">
+                    <SpectrumVisualizer isPlaying={isPlaying} colors={song.color} />
+                  </div>
+
+                  <div className="w-full mt-2"
+                    onClick={(e) => e.stopPropagation()}>
+                    <PlayerControls
+                      song={{ ...song, duration: effectiveDuration || song.duration }}
+                      isPlaying={isPlaying}
+                      progress={progress}
+                      volume={volume}
+                      isMuted={isMuted}
+                      isShuffled={isShuffled}
+                      repeatMode={repeatMode}
+                      onPlayPause={handlePlayPause}
+                      onNext={handleNext}
+                      onPrev={handlePrev}
+                      onSeek={handleSeek}
+                      onVolume={setVolume}
+                      onMute={() => setIsMuted(!isMuted)}
+                      onShuffle={() => setIsShuffled(!isShuffled)}
+                      onRepeat={() => setRepeatMode(m => m === 'none' ? 'all' : m === 'all' ? 'one' : 'none')}
+                    />
+                  </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center w-full px-4">
+                    <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-6">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-12 h-12 text-white/40">
+                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
                       </svg>
-                    ) : (
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5 text-white/40 hover:text-pink-400 transition-colors">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                <p className="text-white/60 text-sm">{song.artist}</p>
-                <p className="text-white/30 text-xs mt-0.5">{song.album}</p>
-              </div>
-
-              <div className="w-full mt-3 cursor-pointer">
-                <SpectrumVisualizer isPlaying={isPlaying} colors={song.color} />
-              </div>
-
-              <div className="w-full mt-2"
-                onClick={(e) => e.stopPropagation()}>
-                <PlayerControls
-                  song={{ ...song, duration: effectiveDuration || song.duration }}
-                  isPlaying={isPlaying}
-                  progress={progress}
-                  volume={volume}
-                  isMuted={isMuted}
-                  isShuffled={isShuffled}
-                  repeatMode={repeatMode}
-                  onPlayPause={handlePlayPause}
-                  onNext={handleNext}
-                  onPrev={handlePrev}
-                  onSeek={handleSeek}
-                  onVolume={setVolume}
-                  onMute={() => setIsMuted(!isMuted)}
-                  onShuffle={() => setIsShuffled(!isShuffled)}
-                  onRepeat={() => setRepeatMode(m => m === 'none' ? 'all' : m === 'all' ? 'one' : 'none')}
-                />
-              </div>
+                    </div>
+                    <h3 className="text-white text-xl font-semibold mb-2">选择本地音乐</h3>
+                    <p className="text-white/40 text-center mb-8">点击右侧面板的「打开文件夹」按钮，选择包含音乐文件的目录</p>
+                    <button
+                      onClick={openFolder}
+                      className="px-6 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-xl transition-colors"
+                    >
+                      打开文件夹
+                    </button>
+                  </div>
+                )}
             </div>
 
             {/* Right panel — switches between list and lyrics */}
@@ -815,17 +867,19 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
                     </button>
                   </div>
                   <div className="flex-1 min-h-0">
-                    <LyricsPanel
-                      song={song}
-                      progress={progress}
-                      colors={song.color}
-                      fullscreen
-                      externalLyrics={lyricsSearch.lyrics}
-                      searching={lyricsSearch.loading}
-                      isOnlineLyrics={lyricsSearch.isOnline}
-                      lyricsSource={lyricsSearch.lyricsSource}
-                      searchError={lyricsSearch.error}
-                    />
+                    {song && (
+                      <LyricsPanel
+                        song={song}
+                        progress={progress}
+                        colors={song.color}
+                        fullscreen
+                        externalLyrics={lyricsSearch.lyrics}
+                        searching={lyricsSearch.loading}
+                        isOnlineLyrics={lyricsSearch.isOnline}
+                        lyricsSource={lyricsSearch.lyricsSource}
+                        searchError={lyricsSearch.error}
+                      />
+                    )}
                   </div>
                 </div>
               )}

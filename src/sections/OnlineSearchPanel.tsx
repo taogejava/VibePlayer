@@ -148,38 +148,6 @@ export default function OnlineSearchPanel({
         </div>
       )}
 
-      {/* Now playing bar */}
-      {currentTrack && (
-        <div className="flex-shrink-0 flex items-center gap-3 bg-violet-600/20 border border-violet-500/30 rounded-xl px-3 py-2.5">
-          {currentTrack.albumCover && (
-            <img
-              src={currentTrack.albumCover}
-              alt=""
-              className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-            />
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-white truncate">{currentTrack.title}</div>
-            <div className="text-xs text-white/50 truncate">{currentTrack.artist} · 30s 预览</div>
-          </div>
-          <button
-            onClick={onTogglePlay}
-            className="flex-shrink-0 w-9 h-9 rounded-full bg-violet-600 hover:bg-violet-500 flex items-center justify-center transition-colors"
-          >
-            {isPlaying ? (
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white">
-                <rect x="6" y="4" width="4" height="16" rx="1" />
-                <rect x="14" y="4" width="4" height="16" rx="1" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white ml-0.5">
-                <path d="M8 5.14v14l11-7-11-7z" />
-              </svg>
-            )}
-          </button>
-        </div>
-      )}
-
       {/* Results list */}
       {results.length > 0 && (
         <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto space-y-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
@@ -261,7 +229,14 @@ export default function OnlineSearchPanel({
 
                 {/* Play button (hover) */}
                 <button
-                  onClick={(e) => { e.stopPropagation(); onSelectTrack(track) }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isActive && isPlaying) {
+                      onTogglePlay();
+                    } else {
+                      onSelectTrack(track);
+                    }
+                  }}
                   className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all
                     ${isActive
                       ? 'bg-violet-600 text-white'
@@ -298,6 +273,42 @@ export default function OnlineSearchPanel({
             <div className="text-xs text-white/25 leading-relaxed">
               输入歌曲名、歌手名搜索<br />
               每首提供 30 秒合法预览片段
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Now playing bar - bottom */}
+      {currentTrack && (
+        <div className="flex-shrink-0 bg-violet-600/20 border border-violet-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-4">
+            {currentTrack.albumCover && (
+              <img
+                src={currentTrack.albumCover}
+                alt=""
+                className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+              />
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-white truncate">{currentTrack.title}</div>
+              <div className="text-xs text-white/50 truncate">{currentTrack.artist} · 30s 预览</div>
+            </div>
+            <div className="flex-shrink-0 flex items-center gap-3">
+              <button
+                onClick={onTogglePlay}
+                className="w-10 h-10 rounded-full bg-violet-600 hover:bg-violet-500 flex items-center justify-center transition-colors"
+              >
+                {isPlaying ? (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white">
+                    <rect x="6" y="4" width="4" height="16" rx="1" />
+                    <rect x="14" y="4" width="4" height="16" rx="1" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white ml-0.5">
+                    <path d="M8 5.14v14l11-7-11-7z" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
         </div>
