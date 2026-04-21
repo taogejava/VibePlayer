@@ -30,55 +30,55 @@
 
 ### 🏠 Stunning Homepage
 
-![Homepage](docs/screenshots/homepage.png)
+![Homepage](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/homepage.png)
 
 A gorgeous homepage with particle animation background and colorful floating orbs. Six feature cards provide one-click access to all functions.
 
 ### 🎵 Music Player
 
-![Music Player](docs/screenshots/music-player.png)
+![Music Player](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/music-player.png)
 
 Select a local music folder — the vinyl record spins with the music, particle effects and spectrum visualization pulse in sync.
 
 ### 🎵 Online Music Search
 
-![Online Music Search](docs/screenshots/online-music.png)
+![Online Music Search](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/online-music.png)
 
 Fuzzy search songs via iTunes API, preview 30-second royalty-free clips, one-click add to playlist.
 
 ### 🎵 Lyrics Display
 
-![Lyrics](docs/screenshots/lyrics-view.png)
+![Lyrics](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/lyrics-view.png)
 
 Click the vinyl record to toggle the lyrics panel. Supports embedded lyrics and online search, with LRC sync scrolling.
 
 ### 🎬 Local Video
 
-![Local Video](docs/screenshots/video-panel.png)
+![Local Video](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/video-panel.png)
 
 Select a video folder, supports 11 video formats with full player controls (fullscreen/speed/seek).
 
 ### 📺 Bilibili Player
 
-![Bilibili](docs/screenshots/bilibili-panel.png)
+![Bilibili](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/bilibili-panel.png)
 
 Paste a Bilibili link — the video plays directly in the embedded player, no browser redirect needed.
 
 ### 🔗 URL Direct Play
 
-![URL Play](docs/screenshots/url-panel.png)
+![URL Play](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/url-panel.png)
 
 Paste any audio/video URL, auto-detect file type and play directly.
 
 ### ☁️ WebDAV Cloud Storage
 
-![WebDAV](docs/screenshots/webdav-panel.png)
+![WebDAV](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/webdav-panel.png)
 
 Connect to Synology, QNAP, NextCloud and other services, browse and play media files directly.
 
 ### 📦 AList Aggregator
 
-![AList](docs/screenshots/alist-panel.png)
+![AList](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/alist-panel.png)
 
 Connect once to access Baidu Drive, Aliyun Drive, 123 Drive, and all mounted storage.
 

@@ -30,55 +30,55 @@
 
 ### 🏠 绚丽首页
 
-![首页](docs/screenshots/homepage.png)
+![首页](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/homepage.png)
 
 打开应用首先看到绚丽首页，粒子动画背景 + 彩色光球漂浮，6 大功能卡片一目了然，点击即可进入对应功能。
 
 ### 🎵 音乐播放
 
-![音乐播放](docs/screenshots/music-player.png)
+![音乐播放](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/music-player.png)
 
 选择本地音乐文件夹，黑胶唱片随音乐旋转，粒子特效和频谱可视化同步律动，完整还原桌面播放器体验。
 
 ### 🎵 在线音乐搜索
 
-![在线音乐搜索](docs/screenshots/online-music.png)
+![在线音乐搜索](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/online-music.png)
 
 通过 iTunes API 模糊搜索歌曲，试听 30 秒免版权预览，一键加入播放列表。
 
 ### 🎵 歌词显示
 
-![歌词显示](docs/screenshots/lyrics-view.png)
+![歌词显示](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/lyrics-view.png)
 
 点击黑胶唱片切换歌词面板，支持内嵌歌词和在线搜索歌词，LRC 同步滚动高亮。
 
 ### 🎬 本地视频
 
-![本地视频](docs/screenshots/video-panel.png)
+![本地视频](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/video-panel.png)
 
 选择视频文件夹，支持 11 种视频格式，完整播放器控件（全屏/倍速/快进快退）。
 
 ### 📺 哔哩哔哩播放
 
-![B站播放](docs/screenshots/bilibili-panel.png)
+![B站播放](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/bilibili-panel.png)
 
 粘贴 B 站链接后，视频直接在播放器内嵌框中流畅播放，无需跳转浏览器。
 
 ### 🔗 链接播放
 
-![链接播放](docs/screenshots/url-panel.png)
+![链接播放](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/url-panel.png)
 
 粘贴任意音视频 URL，自动检测文件类型直接播放。
 
 ### ☁️ WebDAV 云盘
 
-![WebDAV](docs/screenshots/webdav-panel.png)
+![WebDAV](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/webdav-panel.png)
 
 连接群晖/威联通/NextCloud 等服务，直接浏览并播放音视频文件。
 
 ### 📦 AList 网盘聚合
 
-![AList](docs/screenshots/alist-panel.png)
+![AList](https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/alist-panel.png)
 
 一次对接，访问百度网盘、阿里云盘、123 云盘等所有已挂载存储。
 
