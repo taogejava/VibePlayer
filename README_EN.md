@@ -38,7 +38,19 @@ A gorgeous homepage with particle animation background and colorful floating orb
 
 ![Music Player](docs/screenshots/music-player.png)
 
-Select a local music folder — the vinyl record spins with the music, particle effects and spectrum visualization pulse in sync. Click the vinyl to toggle the lyrics panel, and search for online lyrics when no embedded lyrics are available.
+Select a local music folder — the vinyl record spins with the music, particle effects and spectrum visualization pulse in sync.
+
+### 🎵 Online Music Search
+
+![Online Music Search](docs/screenshots/online-music.png)
+
+Fuzzy search songs via iTunes API, preview 30-second royalty-free clips, one-click add to playlist.
+
+### 🎵 Lyrics Display
+
+![Lyrics](docs/screenshots/lyrics-view.png)
+
+Click the vinyl record to toggle the lyrics panel. Supports embedded lyrics and online search, with LRC sync scrolling.
 
 ### 🎬 Local Video
 
