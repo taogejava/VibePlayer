@@ -96,8 +96,14 @@ export default function UrlPlayPanel({ currentUrl, currentType, onPlayUrl }: Pro
       <div className="shrink-0 mb-4">
         <form onSubmit={handleSubmit} className="relative group">
           <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-green-500/20 via-cyan-500/20 to-blue-500/20 blur-sm group-focus-within:blur-md transition-all duration-500" />
-          <div className="relative flex items-center gap-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl px-3 py-2.5">
-            <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 text-green-400/70 shrink-0">
+          <div className="relative flex items-center gap-2 backdrop-blur-xl rounded-xl px-3 py-2.5"
+            style={{
+              backgroundColor: 'var(--theme-bg-secondary, #15152a)',
+              borderColor: 'var(--theme-bg-tertiary, #1e1e3a)',
+              borderWidth: '1px',
+              borderStyle: 'solid',
+            }}>
+            <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 shrink-0" style={{ color: 'var(--theme-primary, #8b5cf6)', opacity: 0.7 }}>
               <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z" fill="currentColor"/>
             </svg>
             <input
@@ -106,12 +112,16 @@ export default function UrlPlayPanel({ currentUrl, currentType, onPlayUrl }: Pro
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="粘贴音频/视频直链 URL..."
-              className="flex-1 bg-transparent text-white/90 text-sm placeholder:text-white/25 outline-none"
+              className="flex-1 bg-transparent text-sm outline-none"
+              style={{ color: 'var(--theme-text-primary, #ffffff)' }}
             />
             <button
               type="button"
               onClick={handlePaste}
-              className="shrink-0 px-2.5 py-1 text-xs text-white/40 hover:text-white/80 hover:bg-white/10 rounded-lg transition-all duration-200"
+              className="shrink-0 px-2.5 py-1 text-xs rounded-lg transition-all duration-200"
+              style={{ color: 'var(--theme-text-muted, #9ca3af)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--theme-text-secondary, #d1d5db)'; e.currentTarget.style.backgroundColor = 'var(--theme-bg-tertiary, #1e1e3a)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--theme-text-muted, #9ca3af)'; e.currentTarget.style.backgroundColor = 'transparent' }}
               title="从剪贴板粘贴"
             >
               粘贴
@@ -119,7 +129,12 @@ export default function UrlPlayPanel({ currentUrl, currentType, onPlayUrl }: Pro
             <button
               type="submit"
               disabled={!inputValue.trim()}
-              className="shrink-0 px-3 py-1.5 text-xs font-medium bg-gradient-to-r from-green-500 to-cyan-500 text-white rounded-lg hover:from-green-400 hover:to-cyan-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-green-500/20"
+              className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
+              style={{
+                background: `linear-gradient(135deg, var(--theme-primary, #8b5cf6), var(--theme-secondary, #06b6d4))`,
+                color: 'var(--theme-bg-primary, #0a0a1a)',
+                boxShadow: `0 4px 15px var(--theme-primary, #8b5cf6)40`,
+              }}
             >
               播放
             </button>
@@ -185,10 +200,12 @@ export default function UrlPlayPanel({ currentUrl, currentType, onPlayUrl }: Pro
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white/70 text-xs truncate group-hover:text-white/90 transition-colors">
+                  <p className="text-xs truncate transition-colors" style={{ color: 'var(--theme-text-secondary, #d1d5db)', opacity: 0.7 }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--theme-text-primary, #ffffff)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--theme-text-secondary, #d1d5db)'}>
                     {item.title}
                   </p>
-                  <p className="text-white/20 text-[10px] mt-0.5 truncate">{item.url}</p>
+                  <p className="text-[10px] mt-0.5 truncate" style={{ color: 'var(--theme-text-muted, #9ca3af)', opacity: 0.2 }}>{item.url}</p>
                 </div>
                 {currentUrl === item.url && (
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shrink-0" />
@@ -202,14 +219,15 @@ export default function UrlPlayPanel({ currentUrl, currentType, onPlayUrl }: Pro
       {/* Empty state */}
       {!currentUrl && history.length === 0 && (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500/10 to-cyan-500/10 border border-white/5 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8 text-green-400/40">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
+            style={{ backgroundColor: 'var(--theme-primary, #8b5cf6)', opacity: 0.1, borderColor: 'var(--theme-bg-tertiary, #1e1e3a)', borderWidth: '1px', borderStyle: 'solid' }}>
+            <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8" style={{ color: 'var(--theme-primary, #8b5cf6)', opacity: 0.4 }}>
               <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z" fill="currentColor"/>
             </svg>
           </div>
           <div>
-            <p className="text-white/30 text-sm mb-1">粘贴音视频直链</p>
-            <p className="text-white/15 text-xs leading-relaxed">
+            <p className="text-sm mb-1" style={{ color: 'var(--theme-text-secondary, #d1d5db)', opacity: 0.35 }}>粘贴音视频直链</p>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--theme-text-muted, #9ca3af)', opacity: 0.18 }}>
               支持任意音频/视频文件直链<br />
               MP3 / FLAC / MP4 / MKV 等
             </p>

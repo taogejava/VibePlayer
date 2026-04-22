@@ -179,28 +179,30 @@ export default function LyricsPanel({
   const wrapperStyle = fullscreen
     ? {}
     : {
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        backgroundColor: 'var(--theme-bg-secondary, #15152a)',
+        borderColor: 'var(--theme-bg-tertiary, #1e1e3a)',
+        borderWidth: '1px',
+        borderStyle: 'solid',
         backdropFilter: 'blur(20px)',
       }
 
   return (
     <div className={wrapper} style={wrapperStyle}>
       {!fullscreen && (
-        <div className="px-5 py-4 border-b border-white/5">
-          <h3 className="text-white/60 text-xs font-semibold tracking-widest uppercase">歌词</h3>
+        <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--theme-bg-tertiary, #1e1e3a)' }}>
+          <h3 className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--theme-text-secondary, #d1d5db)', opacity: 0.6 }}>歌词</h3>
         </div>
       )}
 
       {/* Online lyrics source indicator */}
       {isOnlineLyrics && externalLyrics && externalLyrics.length > 0 && (
-        <div className="shrink-0 px-4 py-1.5 border-b border-white/5 flex items-center gap-2">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3 text-white/20">
+        <div className="shrink-0 px-4 py-1.5 flex items-center gap-2" style={{ borderBottom: '1px solid var(--theme-bg-tertiary, #1e1e3a)' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3" style={{ color: 'var(--theme-text-muted, #9ca3af)', opacity: 0.2 }}>
             <circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
           </svg>
-          <span className="text-white/20 text-[10px]">歌词来源于网络</span>
+          <span className="text-[10px]" style={{ color: 'var(--theme-text-muted, #9ca3af)', opacity: 0.2 }}>歌词来源于网络</span>
           {lyricsSrc && (
-            <span className="text-white/15 text-[10px]">· {lyricsSrc}</span>
+            <span className="text-[10px]" style={{ color: 'var(--theme-text-muted, #9ca3af)', opacity: 0.15 }}>· {lyricsSrc}</span>
           )}
         </div>
       )}
@@ -240,10 +242,10 @@ export default function LyricsPanel({
                     : isActive ? '1.1rem' : '0.9rem',
                   fontWeight: isActive ? 700 : 400,
                   color: isActive
-                    ? 'white'
+                    ? 'var(--theme-text-primary, #ffffff)'
                     : isPast
-                    ? 'rgba(255,255,255,0.25)'
-                    : 'rgba(255,255,255,0.45)',
+                    ? 'var(--theme-text-muted, #9ca3af)'
+                    : 'var(--theme-text-secondary, #d1d5db)',
                   textShadow: isActive
                     ? `0 0 20px ${colors[0]}, 0 0 40px ${colors[1]}`
                     : 'none',

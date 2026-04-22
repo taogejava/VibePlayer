@@ -1,5 +1,7 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import ParticleBackground from './ParticleBackground'
+import { useTheme } from '../ThemeContext'
+import { SettingsPanel } from './SettingsPanel'
 
 export type FeatureKey = 'music' | 'video' | 'bilibili' | 'url' | 'webdav' | 'alist' | 'online'
 
@@ -126,17 +128,17 @@ const features: FeatureCard[] = [
 export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey) => void }) {
   const [mounted, setMounted] = useState(false)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
+  useTheme()
 
   useEffect(() => {
     requestAnimationFrame(() => setMounted(true))
   }, [])
 
-  const colors = useMemo(() => ['#7c3aed', '#06b6d4', '#ec4899', '#f59e0b'], [])
-
   return (
-    <div className="relative w-full h-full overflow-hidden" style={{ background: '#06060f' }}>
+    <div className="relative w-full h-full overflow-hidden" style={{ background: 'var(--theme-bg-primary, #0a0a1a)' }}>
       {/* Particle Background */}
-      <ParticleBackground colors={colors} isPlaying={true} />
+      <ParticleBackground isPlaying={true} />
 
       {/* Animated gradient orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -145,7 +147,7 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
           style={{
             top: '-30%',
             left: '-20%',
-            background: 'radial-gradient(circle, #7c3aed, #2563eb)',
+            background: `radial-gradient(circle, var(--theme-primary, #8b5cf6), var(--theme-secondary, #06b6d4))`,
             animation: 'orb-float-1 12s ease-in-out infinite',
           }}
         />
@@ -154,7 +156,7 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
           style={{
             bottom: '-20%',
             right: '-10%',
-            background: 'radial-gradient(circle, #ec4899, #f59e0b)',
+            background: `radial-gradient(circle, var(--theme-secondary, #06b6d4), var(--theme-accent-1, #f59e0b))`,
             animation: 'orb-float-2 15s ease-in-out infinite',
           }}
         />
@@ -163,7 +165,7 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
           style={{
             top: '40%',
             left: '50%',
-            background: 'radial-gradient(circle, #06b6d4, #8b5cf6)',
+            background: `radial-gradient(circle, var(--theme-primary-light, #a78bfa), var(--theme-secondary-light, #22d3ee))`,
             animation: 'orb-float-3 10s ease-in-out infinite',
           }}
         />
@@ -181,8 +183,26 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
         }}
       />
 
+      {/* Settings button */}
+      <button
+        onClick={() => setShowSettings(true)}
+        className="absolute top-4 right-4 z-30 p-3 rounded-xl transition-all duration-200 hover:scale-110"
+        style={{
+          backgroundColor: 'var(--theme-bg-secondary, #15152a)',
+          color: 'var(--theme-text-primary, #ffffff)',
+          border: '1px solid var(--theme-bg-tertiary, #1e1e3a)',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
+        }}
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </button>
+
       {/* Main content */}
       <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-6">
+        
         {/* Logo + Title */}
         <div
           className={`text-center mb-12 transition-all duration-1000 ${
@@ -192,13 +212,13 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
           {/* Animated logo */}
           <div className="relative inline-flex items-center justify-center mb-6">
             <div className="absolute w-24 h-24 rounded-full opacity-30 blur-xl animated-gradient"
-              style={{ background: 'conic-gradient(#7c3aed, #06b6d4, #ec4899, #f59e0b, #7c3aed)' }}
+              style={{ background: `conic-gradient(var(--theme-primary, #8b5cf6), var(--theme-secondary, #06b6d4), var(--theme-accent-1, #f59e0b), var(--theme-gradient-1, #8b5cf6), var(--theme-primary, #8b5cf6))` }}
             />
             <div
               className="relative w-16 h-16 rounded-2xl flex items-center justify-center"
               style={{
-                background: 'linear-gradient(135deg, rgba(124,58,237,0.8), rgba(6,182,212,0.8))',
-                boxShadow: '0 8px 32px rgba(124,58,237,0.3), 0 0 80px rgba(124,58,237,0.15)',
+                background: `linear-gradient(135deg, var(--theme-primary, #8b5cf6)dd, var(--theme-primary-light, #a78bfa)dd)`,
+                boxShadow: `0 8px 32px var(--theme-glow, rgba(139, 92, 246, 0.4)), 0 0 80px var(--theme-glow, rgba(139, 92, 246, 0.4))`,
                 animation: 'logo-glow 3s ease-in-out infinite',
               }}
             >
@@ -209,12 +229,15 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
             </div>
           </div>
 
-          <h1 className="text-5xl font-bold text-white mb-3 tracking-tight">
-            <span className="bg-gradient-to-r from-violet-400 via-cyan-300 to-pink-400 bg-clip-text text-transparent">
+          <h1 className="text-5xl font-bold mb-3 tracking-tight" style={{ color: 'var(--theme-text-primary, #ffffff)' }}>
+            <span className="bg-clip-text text-transparent"
+              style={{
+                backgroundImage: `linear-gradient(135deg, var(--theme-primary, #8b5cf6), var(--theme-secondary, #06b6d4), var(--theme-gradient-1, #8b5cf6))`
+              }}>
               VibePlayer
             </span>
           </h1>
-          <p className="text-white/40 text-base font-light tracking-wide max-w-md mx-auto leading-relaxed">
+          <p className="text-base font-light tracking-wide max-w-md mx-auto leading-relaxed" style={{ color: 'var(--theme-text-muted, #9ca3af)' }}>
             多源聚合 · 沉浸体验 · 你的全能播放器
           </p>
         </div>
@@ -230,19 +253,19 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
               className={`
                 group relative rounded-2xl p-5 text-left cursor-pointer
                 transition-all duration-500 ease-out
-                border border-white/[0.06]
-                hover:border-white/[0.15]
+                border
                 hover:scale-[1.04] active:scale-[0.97]
                 backdrop-blur-xl
                 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}
               `}
               style={{
+                borderColor: 'var(--theme-bg-tertiary, #1e1e3a)',
                 background: hoveredIndex === index
-                  ? `linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))`
-                  : 'rgba(255,255,255,0.03)',
+                  ? 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'
+                  : 'var(--theme-bg-tertiary, #1e1e3a)/30',
                 transitionDelay: mounted ? `${index * 80 + 200}ms` : '0ms',
                 boxShadow: hoveredIndex === index
-                  ? `0 0 40px ${feature.glow}, 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)`
+                  ? `0 0 40px var(--theme-glow, rgba(139, 92, 246, 0.4)), 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)`
                   : '0 4px 16px rgba(0,0,0,0.2)',
               }}
             >
@@ -251,7 +274,7 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
                 className="absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 pointer-events-none"
                 style={{
                   background: hoveredIndex === index
-                    ? `linear-gradient(135deg, ${feature.glow}, transparent 60%)`
+                    ? 'linear-gradient(135deg, var(--theme-glow, rgba(139, 92, 246, 0.4)), transparent 60%)'
                     : 'transparent',
                   opacity: hoveredIndex === index ? 0.15 : 0,
                   mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
@@ -264,12 +287,13 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
               {/* Icon */}
               <div
                 className={`
-                  text-white/60 group-hover:text-white transition-all duration-500 mb-3
+                  transition-all duration-500 mb-3
                   ${hoveredIndex === index ? 'drop-shadow-lg' : ''}
                 `}
                 style={{
+                  color: hoveredIndex === index ? 'var(--theme-text-primary, #ffffff)' : 'var(--theme-text-muted, #9ca3af)',
                   filter: hoveredIndex === index
-                    ? `drop-shadow(0 0 12px ${feature.glow})`
+                    ? 'drop-shadow(0 0 12px var(--theme-glow, rgba(139, 92, 246, 0.4)))'
                     : 'none',
                   transform: hoveredIndex === index ? 'scale(1.1)' : 'scale(1)',
                 }}
@@ -278,19 +302,20 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
               </div>
 
               {/* Title */}
-              <h3 className="text-white font-semibold text-sm mb-1 tracking-wide">
+              <h3 className="font-semibold text-sm mb-1 tracking-wide" style={{ color: 'var(--theme-text-primary, #ffffff)' }}>
                 {feature.title}
               </h3>
 
               {/* Subtitle */}
-              <p className="text-white/30 text-xs leading-relaxed group-hover:text-white/50 transition-colors duration-300">
+              <p className="text-xs leading-relaxed transition-colors duration-300" style={{ color: hoveredIndex === index ? 'var(--theme-text-secondary, #d1d5db)' : 'var(--theme-text-muted, #9ca3af)' }}>
                 {feature.subtitle}
               </p>
 
               {/* Hover arrow indicator */}
               <div
                 className="absolute top-4 right-4 w-5 h-5 flex items-center justify-center
-                  text-white/0 group-hover:text-white/40 transition-all duration-300"
+                  transition-all duration-300"
+                style={{ color: hoveredIndex === index ? 'var(--theme-primary, #8b5cf6)' : 'transparent' }}
               >
                 <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5">
                   <path
@@ -313,11 +338,14 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
           }`}
           style={{ transitionDelay: '900ms' }}
         >
-          <p className="text-white/20 text-xs tracking-widest uppercase">
+          <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--theme-text-muted, #9ca3af)/40' }}>
             选择功能开始使用
           </p>
         </div>
       </div>
+
+      {/* Settings panel */}
+      <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   )
 }

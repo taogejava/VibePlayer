@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
+import { useTheme } from '../ThemeContext'
 
 interface Props {
-  colors: string[]
+  colors?: string[]
   isPlaying: boolean
 }
 
@@ -17,7 +18,9 @@ interface Particle {
   maxLife: number
 }
 
-export default function ParticleBackground({ colors, isPlaying }: Props) {
+export default function ParticleBackground({ colors: propsColors, isPlaying }: Props) {
+  const { theme } = useTheme()
+  const colors = propsColors || theme.colors.particleColors
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const particlesRef = useRef<Particle[]>([])
   const frameRef = useRef<number | undefined>(undefined)
@@ -25,7 +28,7 @@ export default function ParticleBackground({ colors, isPlaying }: Props) {
   const colorsRef = useRef(colors)
 
   useEffect(() => { isPlayingRef.current = isPlaying }, [isPlaying])
-  useEffect(() => { colorsRef.current = colors }, [colors])
+  useEffect(() => { colorsRef.current = colors }, [colors, theme])
 
   useEffect(() => {
     const canvas = canvasRef.current

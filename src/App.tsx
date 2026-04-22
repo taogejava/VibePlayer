@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import HomePage from './sections/HomePage'
 import MusicPlayer from './sections/MusicPlayer'
+import { ThemeProvider } from './ThemeContext'
 import type { FeatureKey } from './sections/HomePage'
 
 type Page = 'home' | FeatureKey
@@ -30,17 +31,15 @@ export default function App() {
     setInitialPanel(null)
   }
 
-  if (page === 'home') {
-    return (
-      <div className="w-screen h-screen overflow-hidden">
-        <HomePage onNavigate={handleNavigateToFeature} />
-      </div>
-    )
-  }
-
   return (
-    <div className="w-screen h-screen overflow-hidden">
-      <MusicPlayer initialPanel={initialPanel} onBackToHome={handleBackToHome} />
-    </div>
+    <ThemeProvider>
+      <div className="w-screen h-screen overflow-hidden">
+        {page === 'home' ? (
+          <HomePage onNavigate={handleNavigateToFeature} />
+        ) : (
+          <MusicPlayer initialPanel={initialPanel} onBackToHome={handleBackToHome} />
+        )}
+      </div>
+    </ThemeProvider>
   )
 }
