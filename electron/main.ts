@@ -1,8 +1,9 @@
-import { app, BrowserWindow, shell, session, ipcMain, net, WebContentsView } from 'electron'
+import { app, BrowserWindow, shell, session, ipcMain, net, WebContentsView, dialog } from 'electron'
 import { join, dirname, extname } from 'path'
 import { fileURLToPath } from 'url'
 import { createServer } from 'http'
 import { readFile } from 'fs/promises'
+import * as settings from './settings.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -57,7 +58,7 @@ function startLocalServer(port: number): Promise<string> {
       const decodedPath = decodeURIComponent(urlPath)
       const safePath = decodedPath.replace(/\.\./g, '').replace(/\/+/g, '/')
 
-      let filePath = join(RENDERER_DIST, safePath)
+      const filePath = join(RENDERER_DIST, safePath)
 
       try {
         let content = await readFile(filePath)
@@ -124,7 +125,7 @@ ipcMain.handle('main-fetch', (_event, { url, headers }: { url: string; headers?:
       request.setHeader('Referer', 'https://www.bilibili.com')
     }
 
-    let dataChunks: Buffer[] = []
+    const dataChunks: Buffer[] = []
 
     request.on('response', (response) => {
       response.on('data', (chunk: Buffer) => {
@@ -254,6 +255,175 @@ ipcMain.handle('hide-bilibili-player', () => {
     playerView.webContents.close()
     playerView = null
     console.log('[Main] Bilibili player view removed')
+  }
+})
+
+// ============ Settings - Persistent Storage ============
+
+// Get all settings
+ipcMain.handle('settings-get', () => {
+  return settings.loadSettings()
+})
+
+// Save settings
+ipcMain.handle('settings-save', (_event, newSettings: Record<string, unknown>) => {
+  settings.saveSettings(newSettings)
+  return true
+})
+
+// Get last music path
+ipcMain.handle('settings-get-music-path', () => {
+  return settings.getLastMusicPath()
+})
+
+// Set last music path
+ipcMain.handle('settings-set-music-path', (_event, path: string) => {
+  settings.setLastMusicPath(path)
+  return true
+})
+
+// Get last video path
+ipcMain.handle('settings-get-video-path', () => {
+  return settings.getLastVideoPath()
+})
+
+// Set last video path
+ipcMain.handle('settings-set-video-path', (_event, path: string) => {
+  settings.setLastVideoPath(path)
+  return true
+})
+
+// Get settings file path (for debugging)
+ipcMain.handle('settings-get-file-path', () => {
+  return settings.getSettingsFilePathPublic()
+})
+
+// ============ Native File System API ============
+
+// Open folder dialog and return path
+ipcMain.handle('open-folder-dialog', async () => {
+  const result = await dialog.showOpenDialog(win!, {
+    properties: ['openDirectory'],
+    title: '选择文件夹',
+  })
+  
+  if (result.canceled || result.filePaths.length === 0) {
+    return null
+  }
+  
+  return result.filePaths[0]
+})
+
+// Read directory recursively using Node.js fs
+import * as fs from 'fs'
+import * as path from 'path'
+
+interface FileSystemEntry {
+  name: string
+  path: string
+  isDirectory: boolean
+  children?: FileSystemEntry[]
+}
+
+const AUDIO_EXTENSIONS = new Set(['mp3', 'flac', 'wav', 'aac', 'm4a', 'ogg', 'opus', 'wma', 'aiff', 'ape'])
+const VIDEO_EXTENSIONS = new Set(['mp4', 'mkv', 'webm', 'avi', 'mov', 'wmv', 'flv', 'm4v', 'ts', 'rmvb', '3gp'])
+
+function readDirRecursive(dirPath: string, extensions?: Set<string>): FileSystemEntry[] {
+  const entries: FileSystemEntry[] = []
+  
+  try {
+    const items = fs.readdirSync(dirPath, { withFileTypes: true })
+    
+    for (const item of items) {
+      if (item.name.startsWith('.')) continue
+      
+      const fullPath = path.join(dirPath, item.name)
+      
+      if (item.isDirectory()) {
+        try {
+          const children = readDirRecursive(fullPath, extensions)
+          // Only include directories that have matching files (recursively)
+          const hasFiles = hasMatchingFiles(children)
+          if (hasFiles) {
+            entries.push({
+              name: item.name,
+              path: fullPath,
+              isDirectory: true,
+              children: children
+            })
+          }
+        } catch {
+          // Skip directories we can't read
+        }
+      } else if (item.isFile()) {
+        const ext = item.name.split('.').pop()?.toLowerCase()
+        if (!extensions || (ext && extensions.has(ext))) {
+          entries.push({
+            name: item.name,
+            path: fullPath,
+            isDirectory: false
+          })
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[Main] Error reading directory:', dirPath, e)
+  }
+  
+  // Sort: directories first, then files, both alphabetically
+  entries.sort((a, b) => {
+    if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1
+    return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+  })
+  
+  return entries
+}
+
+function hasMatchingFiles(entries: FileSystemEntry[]): boolean {
+  for (const entry of entries) {
+    if (!entry.isDirectory) return true
+    if (entry.children && hasMatchingFiles(entry.children)) return true
+  }
+  return false
+}
+
+// Read music directory
+ipcMain.handle('read-directory', (_event, dirPath: string): FileSystemEntry[] | null => {
+  try {
+    if (!fs.existsSync(dirPath)) {
+      console.error('[Main] Directory does not exist:', dirPath)
+      return null
+    }
+    
+    const stats = fs.statSync(dirPath)
+    if (!stats.isDirectory()) {
+      console.error('[Main] Path is not a directory:', dirPath)
+      return null
+    }
+    
+    return readDirRecursive(dirPath, AUDIO_EXTENSIONS)
+  } catch (e) {
+    console.error('[Main] Failed to read directory:', e)
+    return null
+  }
+})
+
+// Read video directory
+ipcMain.handle('read-video-directory', (_event, dirPath: string): FileSystemEntry[] | null => {
+  try {
+    if (!fs.existsSync(dirPath)) {
+      return null
+    }
+    
+    const stats = fs.statSync(dirPath)
+    if (!stats.isDirectory()) {
+      return null
+    }
+    
+    return readDirRecursive(dirPath, VIDEO_EXTENSIONS)
+  } catch (e) {
+    console.error('[Main] Failed to read video directory:', e)
+    return null
   }
 })
 

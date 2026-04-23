@@ -17,6 +17,8 @@
 | 📋 Playlist Management | Favorite songs, switch play modes (sequential / shuffle / repeat one) |
 | 📁 Local Music Library | Select local folders, recursive scan, directory tree display, click to play |
 | 🎬 Bilibili Integration | Paste Bilibili URLs, resolve video info, embedded player |
+| 🎬 Local Video Library | Select local folders, recursive scan for video files (MP4/MKV/WebM/etc.) |
+| 💾 Path Persistence | Auto-save last opened folder, restore on restart |
 | 🎚️ Full Player Controls | Progress bar seek, volume slider, prev/next, play/pause |
 
 ---
