@@ -103,8 +103,18 @@ function fileNodeToSong(node: FileNode): Song {
   const parts = name.split(' - ')
   const title = parts.length >= 2 ? parts.slice(1).join(' - ').trim() : name
   const artist = parts.length >= 2 ? parts[0].trim() : '未知艺术家'
-  const url = node.url ?? URL.createObjectURL(node.fileHandle!)
-  node.url = url
+  
+  // Support both native path mode and FSA file handle mode
+  let url: string
+  if (node.path && !node.fileHandle) {
+    // Native Electron mode: use file:// protocol
+    url = `file://${encodeURIComponent(node.path).replace(/%2F/g, '/')}`
+  } else {
+    // FSA mode: use blob URL
+    url = node.url ?? URL.createObjectURL(node.fileHandle!)
+    node.url = url
+  }
+  
   return {
     id: ++localIdCounter,
     title,
@@ -436,7 +446,8 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
 
   // Play from local file tree
   const handlePlayLocalFile = useCallback((node: FileNode) => {
-    if (!node.fileHandle) return
+    // Support both native path mode and FSA file handle mode
+    if (!node.fileHandle && !node.path) return
     const newSong = fileNodeToSong(node)
     setCurrentLocalFileId(node.id)
     setRightPanel('list')
@@ -460,10 +471,20 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
 
   // Play from local video file tree
   const handlePlayVideoFile = useCallback((node: VideoFileNode) => {
-    if (!node.fileHandle) return
+    // Support both native path mode and FSA file handle mode
+    if (!node.fileHandle && !node.path) return
     pauseAudio()  // Stop audio before playing video
-    const url = node.url ?? URL.createObjectURL(node.fileHandle)
-    node.url = url
+    
+    let url: string
+    if (node.path && !node.fileHandle) {
+      // Native Electron mode: use file:// protocol
+      url = `file://${encodeURIComponent(node.path).replace(/%2F/g, '/')}`
+    } else {
+      // FSA mode: use blob URL
+      url = node.url ?? URL.createObjectURL(node.fileHandle!)
+      node.url = url
+    }
+    
     setCurrentVideoFileId(node.id)
     setCurrentVideoSrc(url)
     setCurrentVideoTitle(node.name.replace(/\.[^/.]+$/, ''))
