@@ -19,6 +19,25 @@
 
 ---
 
+## 📸 界面截图
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/v1.3.3/homepage.png" alt="主界面" width="700">
+  <br><em>主界面 — 流光音符 Logo + 功能卡片</em>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/v1.3.3/online-music.png" alt="在线音乐搜索" width="700">
+  <br><em>在线音乐搜索 — iTunes API，30s 试听</em>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/v1.3.3/lyrics-view.png" alt="歌词界面" width="700">
+  <br><em>歌词界面 — LRC 同步滚动</em>
+</p>
+
+---
+
 ## ✨ 功能概览
 
 | 功能 | 描述 |

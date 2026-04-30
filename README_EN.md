@@ -19,6 +19,25 @@
 
 ---
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/v1.3.3/homepage.png" alt="Homepage" width="700">
+  <br><em>Homepage — Flowing Note Logo + Feature Cards</em>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/v1.3.3/online-music.png" alt="Online Music Search" width="700">
+  <br><em>Online Music Search — iTunes API, 30s preview</em>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/v1.3.3/lyrics-view.png" alt="Lyrics View" width="700">
+  <br><em>Lyrics View — LRC sync scrolling</em>
+</p>
+
+---
+
 ## ✨ Features
 
 | Feature | Description |
