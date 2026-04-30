@@ -1,8 +1,21 @@
 # 🎵 VibePlayer — All-in-One Media Player
 
 <p align="center">
+  <img src="https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/logo.svg" alt="VibePlayer Logo" width="120">
+  <br>
   <strong>A visually stunning desktop media center integrating music, video, Bilibili, and cloud storage</strong>
 </p>
+
+---
+
+## 📋 Changelog
+
+### v1.3.3 (2026-04-30)
+
+- 🎨 **New Logo Design** — "Flowing Note" concept with purple-cyan gradient dual notes and sparkle particles, all icons unified
+- 🐛 **Fixed local music library highlight bug** — Fixed issue where all files in subdirectories were highlighted simultaneously
+- 🎵 **Online Music Search** — Fuzzy search via iTunes API, 30s royalty-free preview, one-click add to playlist
+- 🎵 **Online Lyrics Search** — One-click online lyrics search for local songs without embedded lyrics, with LRC sync scrolling
 
 ---
 

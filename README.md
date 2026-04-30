@@ -1,8 +1,21 @@
 # 🎵 VibePlayer — 全能媒体播放器
 
 <p align="center">
+  <img src="https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/logo.svg" alt="VibePlayer Logo" width="120">
+  <br>
   <strong>视觉震撼的桌面媒体中心，集成音乐、视频、B站、网盘于一体</strong>
 </p>
+
+---
+
+## 📋 更新日志
+
+### v1.3.3 (2026-04-30)
+
+- 🎨 **全新 Logo 设计** — 采用「流光音符」方案，紫青渐变双音符搭配流光粒子，全局图标统一替换
+- 🐛 **修复本地音乐库高亮 bug** — 修复子目录文件全部同时高亮的问题（id 递归分配）
+- 🎵 **在线音乐搜索** — 基于 iTunes API 模糊搜索，试听 30s 免版权预览，一键加入播放列表
+- 🎵 **在线歌词搜索** — 本地歌曲无内嵌歌词时，一键搜索在线歌词，LRC 同步滚动
 
 ---
 

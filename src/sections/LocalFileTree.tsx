@@ -42,7 +42,7 @@ function FileIcon({ name, isActive }: { name: string; isActive: boolean }) {
   const color = isActive ? 'var(--theme-text-primary, #ffffff)' : (EXT_COLORS[ext] ?? 'var(--theme-text-muted, #9ca3af)')
   return (
     <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0" fill={color}>
-      <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+      <path d="M10 4v8.5c-.3-.1-.6-.3-.9-.3-1.3-.5-2.8.2-3.3 1.4-.5 1.3.2 2.6 1.4 3.1 1.3.5 2.8-.2 3.3-1.4.1-.2.1-.5.1-.7V7.5h4v7.5c-.3-.1-.6-.3-.9-.3-1.3-.5-2.8.2-3.3 1.4-.5 1.3.2 2.6 1.4 3.1 1.3.5 2.8-.2 3.3-1.4.1-.2.1-.5.1-.7V4h-5.2z"/>
     </svg>
   )
 }

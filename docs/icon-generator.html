@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>VibePlayer Icon Generator</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1024" height="1024"></canvas>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+const W = 1024, H = 1024;
+
+// Background gradient (dark with purple/blue tones)
+const bg = ctx.createRadialGradient(W/2, H/2, 100, W/2, H/2, 600);
+bg.addColorStop(0, '#1a1a2e');
+bg.addColorStop(0.5, '#16213e');
+bg.addColorStop(1, '#0f0f23');
+ctx.fillStyle = bg;
+ctx.fillRect(0, 0, W, H);
+
+// Rounded rectangle mask
+ctx.save();
+roundRect(ctx, 0, 0, W, H, 226);
+ctx.clip();
+
+// Background again (inside clip)
+ctx.fillStyle = bg;
+ctx.fillRect(0, 0, W, H);
+
+// Subtle grid pattern
+ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+ctx.lineWidth = 1;
+for (let i = 0; i < W; i += 40) {
+  ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(W, i); ctx.stroke();
+}
+
+// Glow behind notes
+const glow = ctx.createRadialGradient(420, 500, 50, 420, 500, 350);
+glow.addColorStop(0, 'rgba(139, 92, 246, 0.15)');
+glow.addColorStop(0.5, 'rgba(99, 102, 241, 0.08)');
+glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = glow;
+ctx.fillRect(0, 0, W, H);
+
+const glow2 = ctx.createRadialGradient(620, 430, 30, 620, 430, 300);
+glow2.addColorStop(0, 'rgba(6, 182, 212, 0.12)');
+glow2.addColorStop(0.5, 'rgba(99, 102, 241, 0.06)');
+glow2.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = glow2;
+ctx.fillRect(0, 0, W, H);
+
+// Music notes
+ctx.lineCap = 'round';
+ctx.lineJoin = 'round';
+
+// Note color gradient
+const noteGrad = ctx.createLinearGradient(250, 200, 700, 700);
+noteGrad.addColorStop(0, '#a78bfa');
+noteGrad.addColorStop(0.4, '#8b5cf6');
+noteGrad.addColorStop(0.7, '#06b6d4');
+noteGrad.addColorStop(1, '#22d3ee');
+
+// Left note stem
+ctx.strokeStyle = noteGrad;
+ctx.lineWidth = 18;
+ctx.beginPath();
+ctx.moveTo(370, 250);
+ctx.lineTo(370, 680);
+ctx.stroke();
+
+// Left note head
+ctx.fillStyle = noteGrad;
+ctx.beginPath();
+ctx.save();
+ctx.translate(355, 710);
+ctx.rotate(-0.18);
+ctx.ellipse(0, 0, 75, 50, 0, 0, Math.PI * 2);
+ctx.fill();
+ctx.restore();
+
+// Right note beam (connecting bar)
+ctx.strokeStyle = noteGrad;
+ctx.lineWidth = 18;
+ctx.beginPath();
+ctx.moveTo(370, 250);
+ctx.quadraticCurveTo(520, 220, 600, 260);
+ctx.stroke();
+
+// Right note stem
+ctx.beginPath();
+ctx.moveTo(600, 260);
+ctx.lineTo(600, 610);
+ctx.stroke();
+
+// Right note head
+ctx.fillStyle = noteGrad;
+ctx.beginPath();
+ctx.save();
+ctx.translate(585, 640);
+ctx.rotate(-0.18);
+ctx.ellipse(0, 0, 75, 50, 0, 0, Math.PI * 2);
+ctx.fill();
+ctx.restore();
+
+// Second beam (lower connecting bar)
+ctx.strokeStyle = noteGrad;
+ctx.lineWidth = 14;
+ctx.globalAlpha = 0.6;
+ctx.beginPath();
+ctx.moveTo(370, 310);
+ctx.quadraticCurveTo(510, 285, 600, 320);
+ctx.stroke();
+ctx.globalAlpha = 1;
+
+// Sparkle dots
+const sparkles = [
+  { x: 700, y: 200, r: 6, a: 0.7 },
+  { x: 250, y: 300, r: 5, a: 0.5 },
+  { x: 750, y: 450, r: 4, a: 0.4 },
+  { x: 200, y: 550, r: 4, a: 0.3 },
+  { x: 680, y: 700, r: 5, a: 0.35 },
+  { x: 300, y: 800, r: 3, a: 0.25 },
+];
+
+sparkles.forEach(s => {
+  const sg = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 4);
+  sg.addColorStop(0, `rgba(196, 181, 253, ${s.a})`);
+  sg.addColorStop(1, 'rgba(196, 181, 253, 0)');
+  ctx.fillStyle = sg;
+  ctx.beginPath();
+  ctx.arc(s.x, s.y, s.r * 4, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.fillStyle = `rgba(255, 255, 255, ${s.a})`;
+  ctx.beginPath();
+  ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+  ctx.fill();
+});
+
+// Top highlight
+const highlight = ctx.createLinearGradient(0, 0, 0, H);
+highlight.addColorStop(0, 'rgba(255,255,255,0.08)');
+highlight.addColorStop(0.3, 'rgba(255,255,255,0)');
+ctx.fillStyle = highlight;
+ctx.fillRect(0, 0, W, H);
+
+// Border glow
+ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)';
+ctx.lineWidth = 4;
+roundRect(ctx, 2, 2, W-4, H-4, 224);
+ctx.stroke();
+
+ctx.restore();
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+// Auto download
+const link = document.createElement('a');
+link.download = 'icon-1024.png';
+link.href = c.toDataURL('image/png');
+link.click();
+</script>
+</body>
+</html>

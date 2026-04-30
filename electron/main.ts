@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, session, ipcMain, net, WebContentsView, dialog } from 'electron'
+import { app, BrowserWindow, shell, session, ipcMain, net, WebContentsView, dialog, protocol } from 'electron'
 import { join, dirname, extname } from 'path'
 import { fileURLToPath } from 'url'
 import { createServer } from 'http'
@@ -429,6 +429,33 @@ ipcMain.handle('read-video-directory', (_event, dirPath: string): FileSystemEntr
 
 let win: BrowserWindow | null = null
 
+// Register custom protocol to serve local audio/video files from the renderer
+function registerLocalFileProtocol() {
+  protocol.handle('local-file', async (request) => {
+    const urlPath = decodeURIComponent(new URL(request.url).pathname)
+    // Security: only allow audio/video file extensions
+    const ext = extname(urlPath).toLowerCase()
+    const allowedExts = new Set(['.mp3', '.flac', '.wav', '.aac', '.m4a', '.ogg', '.opus', '.wma', '.aiff', '.ape', '.mp4', '.mkv', '.webm', '.avi', '.mov', '.wmv', '.flv', '.m4v', '.ts', '.rmvb', '.3gp'])
+    if (!allowedExts.has(ext)) {
+      return new Response('Not allowed', { status: 403 })
+    }
+    // Security: prevent path traversal
+    const safePath = urlPath.replace(/\.\./g, '')
+    if (!fs.existsSync(safePath) || !fs.statSync(safePath).isFile()) {
+      return new Response('Not found', { status: 404 })
+    }
+    const data = await readFile(safePath)
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream'
+    return new Response(data, {
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': String(data.length),
+        'Accept-Ranges': 'bytes',
+      }
+    })
+  })
+}
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1200,
@@ -538,4 +565,7 @@ app.on('activate', () => {
   }
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  registerLocalFileProtocol()
+  createWindow()
+})

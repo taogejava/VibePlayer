@@ -107,12 +107,14 @@ function fileNodeToSong(node: FileNode): Song {
   // Support both native path mode and FSA file handle mode
   let url: string
   if (node.path && !node.fileHandle) {
-    // Native Electron mode: use file:// protocol
-    url = `file://${encodeURIComponent(node.path).replace(/%2F/g, '/')}`
+    // Native Electron mode: use custom local-file:// protocol (served via main process)
+    url = `local-file://${encodeURIComponent(node.path).replace(/%3A/g, ':').replace(/%2F/g, '/')}`
+    console.log('[fileNodeToSong] native mode, path:', node.path, '→ url:', url)
   } else {
     // FSA mode: use blob URL
     url = node.url ?? URL.createObjectURL(node.fileHandle!)
     node.url = url
+    console.log('[fileNodeToSong] FSA mode, url:', url)
   }
   
   return {
@@ -164,20 +166,18 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
   // ---------- Audio element ----------
   const audioRef = useRef<HTMLAudioElement>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Keep songs ref for use in callbacks that run outside React's lifecycle
+  const songsRef = useRef(songs)
+  songsRef.current = songs
 
   const song = songs[currentIndex] ?? null
 
   // ---------- Local audio library ----------
-  const { tree, loading, rootName, error: libError, openFolder, toggleExpand, restoreLastFolder } = useLocalLibrary()
+  const { tree, loading, rootName, error: libError, openFolder, toggleExpand } = useLocalLibrary()
   const [currentLocalFileId, setCurrentLocalFileId] = useState<string | null>(null)
   const [rightPanel, setRightPanel] = useState<'list' | 'lyrics' | null>(null)
 
-  // Restore last folder on mount
-  useEffect(() => {
-    restoreLastFolder()
-  }, [restoreLastFolder])
-
-  // Auto-expand list only when tree transitions from empty to non-empty (e.g. after openFolder or restore)
+  // Auto-expand list only when tree transitions from empty to non-empty (e.g. after openFolder)
   const prevTreeLenRef = useRef(0)
   useEffect(() => {
     const prev = prevTreeLenRef.current
@@ -190,11 +190,6 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
 
   // ---------- Local video library ----------
   const videoLib = useVideoLibrary()
-
-  // Restore last video folder on mount
-  useEffect(() => {
-    videoLib.restoreLastFolder()
-  }, [videoLib.restoreLastFolder])
   const [currentVideoFileId, setCurrentVideoFileId] = useState<string | null>(null)
   const [currentVideoSrc, setCurrentVideoSrc] = useState<string | null>(null)
   const [currentVideoTitle, setCurrentVideoTitle] = useState<string | null>(null)
@@ -239,15 +234,15 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
   }
 
   const playAudio = useCallback((url: string) => {
+    console.log('[playAudio] called with url:', url)
     clearTimer()
     if (!audioRef.current) audioRef.current = new Audio()
     const audio = audioRef.current
     audio.volume = isMuted ? 0 : volume / 100
 
-    if (audio.src !== url) {
-      audio.src = url
-      audio.load()
-    }
+    // Always set src to trigger reload — don't call load() separately (causes race with play())
+    audio.src = url
+    console.log('[playAudio] audio.src set, readyState:', audio.readyState)
 
     const startTimer = () => {
       clearTimer()
@@ -257,7 +252,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
           setProgress(0)
           setIsPlaying(false)
           setTimeout(() => {
-            setCurrentIndex(i => (i + 1) % Math.max(1, songs.length))
+            setCurrentIndex(i => (i + 1) % Math.max(1, songsRef.current.length))
           }, 100)
         } else {
           setProgress(audio.currentTime)
@@ -267,6 +262,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
     }
 
     audio.onloadedmetadata = () => {
+      console.log('[playAudio] onloadedmetadata, duration:', audio.duration)
       setDuration(audio.duration)
       setSongs(prev => prev.map((s) => {
         if (s.fileUrl === url) {
@@ -276,13 +272,22 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
       }))
     }
 
+    audio.onerror = () => {
+      console.error('[playAudio] onerror', audio.error, audio.src)
+    }
+
     audio.play().then(() => {
+      console.log('[playAudio] play() succeeded, isPlaying=true')
       setIsPlaying(true)
       startTimer()
     }).catch((err) => {
-      console.warn('Playback failed:', err)
+      console.warn('[playAudio] play() FAILED:', err)
     })
-  }, [isMuted, volume, songs.length])
+  }, [isMuted, volume])
+
+  // Keep a ref to playAudio so the currentIndex effect always calls the latest version
+  const playAudioRef = useRef(playAudio)
+  playAudioRef.current = playAudio
 
   const pauseAudio = useCallback(() => {
     clearTimer()
@@ -349,33 +354,27 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
     }
   }, [panel])
 
-  // When current index changes AND it's a local file, play it
+  // When current index changes, play the song
   useEffect(() => {
+    console.log('[useEffect currentIndex] fired, currentIndex:', currentIndex, 'songs.length:', songs.length)
+    if (currentIndex >= songs.length) return
     const s = songs[currentIndex]
-    if (s?.fileUrl) {
-      playAudio(s.fileUrl)
+    if (!s) return
+    console.log('[useEffect currentIndex] song:', s.title, 'fileUrl:', s.fileUrl)
+    if (s.fileUrl) {
+      console.log('[useEffect currentIndex] calling playAudioRef.current')
+      playAudioRef.current(s.fileUrl)
     } else {
+      console.log('[useEffect currentIndex] no fileUrl, clearing audio')
       if (audioRef.current) {
         audioRef.current.pause()
         audioRef.current.src = ''
       }
       clearTimer()
-      if (isPlaying) {
-        timerRef.current = setInterval(() => {
-          setProgress(prev => {
-            if (prev >= s.duration) {
-              handleNext()
-              return 0
-            }
-            return prev + 0.5
-          })
-        }, 500)
-      }
     }
     setProgress(0)
-    setDuration(s?.duration ?? 0)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex])
+    setDuration(s.duration ?? 0)
+  }, [currentIndex, songs.length])
 
   // Demo song play/pause toggle
   useEffect(() => {
@@ -426,6 +425,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
 
   const handlePlayPause = () => {
     const s = songs[currentIndex]
+    console.log('[handlePlayPause] currentIndex:', currentIndex, 'song:', s?.title, 'fileUrl:', s?.fileUrl, 'isPlaying:', isPlaying, 'audioRef:', !!audioRef.current)
     if (s?.fileUrl && audioRef.current) {
       if (isPlaying) {
         pauseAudio()
@@ -433,6 +433,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
         playAudio(s.fileUrl)
       }
     } else {
+      console.log('[handlePlayPause] no fileUrl or no audioRef, toggling isPlaying')
       setIsPlaying(p => !p)
     }
   }
@@ -446,28 +447,43 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
 
   // Play from local file tree
   const handlePlayLocalFile = useCallback((node: FileNode) => {
+    console.log('[handlePlayLocalFile] node:', node.name, 'path:', node.path, 'hasFileHandle:', !!node.fileHandle, 'node.id:', node.id)
     // Support both native path mode and FSA file handle mode
-    if (!node.fileHandle && !node.path) return
-    const newSong = fileNodeToSong(node)
+    if (!node.fileHandle && !node.path) {
+      console.warn('[handlePlayLocalFile] SKIP — no fileHandle and no path')
+      return
+    }
     setCurrentLocalFileId(node.id)
     setRightPanel('list')
 
-    setSongs(prev => {
-      const existingIdx = prev.findIndex(s => s.fileNode?.id === node.id)
-      if (existingIdx >= 0) {
-        setCurrentIndex(existingIdx)
-        setProgress(0)
-        playAudio(prev[existingIdx].fileUrl!)
-        return prev
-      }
-      const next = [...prev, newSong]
-      const idx = next.length - 1
-      setCurrentIndex(idx)
+    // Build URL for this node
+    let url: string
+    if (node.path && !node.fileHandle) {
+      url = `local-file://${encodeURIComponent(node.path).replace(/%3A/g, ':').replace(/%2F/g, '/')}`
+    } else {
+      url = node.url ?? URL.createObjectURL(node.fileHandle!)
+      node.url = url
+    }
+    console.log('[handlePlayLocalFile] built url:', url)
+
+    // Use node.path as dedupe key — stable across re-scans unlike node.id
+    const existingIdx = songs.findIndex(s => s.fileNode?.path === node.path && node.path)
+    console.log('[handlePlayLocalFile] existingIdx:', existingIdx, 'songs.length:', songs.length)
+    if (existingIdx >= 0) {
       setProgress(0)
-      playAudio(newSong.fileUrl!)
-      return next
-    })
-  }, [playAudio])
+      setCurrentIndex(existingIdx)
+    } else {
+      const newSong = fileNodeToSong(node)
+      const next = [...songs, newSong]
+      setSongs(next)
+      setProgress(0)
+      setCurrentIndex(next.length - 1)
+    }
+
+    // Play directly — don't rely on useEffect timing
+    console.log('[handlePlayLocalFile] calling playAudioRef.current with url:', url)
+    playAudioRef.current(url)
+  }, [songs])
 
   // Play from local video file tree
   const handlePlayVideoFile = useCallback((node: VideoFileNode) => {
@@ -477,8 +493,8 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
     
     let url: string
     if (node.path && !node.fileHandle) {
-      // Native Electron mode: use file:// protocol
-      url = `file://${encodeURIComponent(node.path).replace(/%2F/g, '/')}`
+      // Native Electron mode: use custom local-file:// protocol
+      url = `local-file://${encodeURIComponent(node.path).replace(/%3A/g, ':').replace(/%2F/g, '/')}`
     } else {
       // FSA mode: use blob URL
       url = node.url ?? URL.createObjectURL(node.fileHandle!)
@@ -694,7 +710,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
               <div className="w-8 h-8 rounded-full flex items-center justify-center"
                 style={{ background: `linear-gradient(135deg, ${song?.color?.[0] || 'var(--theme-primary, #8b5cf6)'}, ${song?.color?.[1] || 'var(--theme-secondary, #06b6d4)'})` }}>
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white">
-                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                  <path d="M8.5 3v10.5c-.3-.2-.7-.3-1-.5-1.7-.6-3.6.2-4.2 1.7s.2 3.2 1.7 3.8c1.7.6 3.6-.2 4.2-1.7.1-.3.2-.6.2-.9V8h5v7.5c-.3-.2-.7-.3-1-.5-1.7-.6-3.6.2-4.2 1.7s.2 3.2 1.7 3.8c1.7.6 3.6-.2 4.2-1.7.1-.3.2-.6.2-.9V3h-6.8z" transform="scale(0.85) translate(2,1)"/>
                 </svg>
               </div>
               <span className="font-semibold text-sm tracking-widest uppercase" style={{ color: 'var(--theme-text-primary, #ffffff)', opacity: 0.8 }}>VibePlayer</span>
@@ -738,7 +754,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
                   >
                     {p.key === 'library' && (
                       <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
-                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                        <path d="M10 4v8.5c-.3-.1-.6-.3-.9-.3-1.3-.5-2.8.2-3.3 1.4-.5 1.3.2 2.6 1.4 3.1 1.3.5 2.8-.2 3.3-1.4.1-.2.1-.5.1-.7V7.5h4v7.5c-.3-.1-.6-.3-.9-.3-1.3-.5-2.8.2-3.3 1.4-.5 1.3.2 2.6 1.4 3.1 1.3.5 2.8-.2 3.3-1.4.1-.2.1-.5.1-.7V4h-5.2z"/>
                       </svg>
                     )}
                     {p.key === 'online' && (
@@ -892,7 +908,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="w-12 h-12"
                         style={{ color: 'var(--theme-text-muted, #9ca3af)' }}
                       >
-                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                        <path d="M10 4v8.5c-.3-.1-.6-.3-.9-.3-1.3-.5-2.8.2-3.3 1.4-.5 1.3.2 2.6 1.4 3.1 1.3.5 2.8-.2 3.3-1.4.1-.2.1-.5.1-.7V7.5h4v7.5c-.3-.1-.6-.3-.9-.3-1.3-.5-2.8.2-3.3 1.4-.5 1.3.2 2.6 1.4 3.1 1.3.5 2.8-.2 3.3-1.4.1-.2.1-.5.1-.7V4h-5.2z" fill="currentColor" stroke="none"/>
                       </svg>
                     </div>
                     <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--theme-text-primary, #ffffff)' }}>选择本地音乐</h3>
@@ -953,7 +969,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
                   <div className="px-4 py-3 flex items-center gap-2 rounded-t-2xl"
                     style={{ borderBottom: '1px solid var(--theme-bg-tertiary, #1e1e3a)' }}>
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 shrink-0" style={{ color: 'var(--theme-text-muted, #9ca3af)', opacity: 0.4 }}>
-                      <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                      <path d="M10 4v8.5c-.3-.1-.6-.3-.9-.3-1.3-.5-2.8.2-3.3 1.4-.5 1.3.2 2.6 1.4 3.1 1.3.5 2.8-.2 3.3-1.4.1-.2.1-.5.1-.7V7.5h4v7.5c-.3-.1-.6-.3-.9-.3-1.3-.5-2.8.2-3.3 1.4-.5 1.3.2 2.6 1.4 3.1 1.3.5 2.8-.2 3.3-1.4.1-.2.1-.5.1-.7V4h-5.2z"/>
                     </svg>
                     <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'var(--theme-text-secondary, #d1d5db)', opacity: 0.6 }}>歌词</span>
                     <button

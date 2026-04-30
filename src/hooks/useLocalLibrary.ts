@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 
 export const AUDIO_EXTENSIONS = new Set([
   'mp3', 'flac', 'wav', 'aac', 'm4a', 'ogg', 'opus', 'wma', 'aiff', 'ape'
@@ -39,15 +39,6 @@ function saveToLocalStorage(key: string, value: string) {
   }
 }
 
-function loadFromLocalStorage(key: string): string | null {
-  try {
-    return localStorage.getItem(key)
-  } catch (e) {
-    console.error('[useLocalLibrary] Failed to load from localStorage:', e)
-    return null
-  }
-}
-
 // ── Electron native filesystem (using IPC to main process) ──
 async function openFolderNative(): Promise<string | null> {
   try {
@@ -60,19 +51,32 @@ async function openFolderNative(): Promise<string | null> {
   return null
 }
 
+function assignIds(nodes: any[]): any[] {
+  let counter = 0
+  function walk(items: any[]): any[] {
+    return items.map((item: any) => {
+      const node: any = {
+        id: `native-${counter++}-${item.name}`,
+        name: item.name,
+        type: item.isDirectory ? 'directory' : 'file',
+        path: item.path,
+      }
+      if (item.children && item.children.length > 0) {
+        node.children = walk(item.children)
+      }
+      return node
+    })
+  }
+  return walk(nodes)
+}
+
 // ── Read directory using Node.js fs via IPC ──
 async function readDirectoryNative(dirPath: string): Promise<any[]> {
   try {
     if (window.electronAPI?.readDirectory) {
       const result = await window.electronAPI.readDirectory(dirPath)
       if (result && Array.isArray(result)) {
-        return result.map((item: any, idx: number) => ({
-          id: `native-${idx}-${item.name}`,
-          name: item.name,
-          type: item.isDirectory ? 'directory' : 'file',
-          path: item.path,
-          children: item.children || undefined,
-        }))
+        return assignIds(result)
       }
     }
   } catch (e) {
@@ -127,21 +131,6 @@ async function saveDirHandle(handle: FileSystemDirectoryHandle): Promise<void> {
   } catch { /* ignore */ }
 }
 
-async function loadDirHandle(): Promise<FileSystemDirectoryHandle | null> {
-  try {
-    const db = await openDB()
-    const tx = db.transaction(STORE_NAME, 'readonly')
-    const handle = await tx.objectStore(STORE_NAME).get('lastMusicDir') as unknown as FileSystemDirectoryHandle | undefined
-    if (handle) {
-      const perm = await (handle as any).queryPermission({ mode: 'read' })
-      if (perm === 'granted') return handle
-      const req = await (handle as any).requestPermission({ mode: 'read' })
-      if (req === 'granted') return handle
-    }
-  } catch { /* ignore */ }
-  return null
-}
-
 async function readDirectoryFSA(dirHandle: FileSystemDirectoryHandle, parentPath: string): Promise<FileNode[]> {
   const nodes: FileNode[] = []
   for await (const [name, handle] of dirHandle as unknown as AsyncIterable<[string, FileSystemHandle]>) {
@@ -169,7 +158,6 @@ export function useLocalLibrary() {
   const [loading, setLoading] = useState(false)
   const [rootName, setRootName] = useState<string>('')
   const [error, setError] = useState<string>('')
-  const restoredRef = useRef(false)
 
   // Open folder - prefer native Electron dialog, fallback to FSA
   const openFolder = useCallback(async () => {
@@ -222,81 +210,11 @@ export function useLocalLibrary() {
     setLoading(false)
   }, [])
 
-  // Restore last folder on mount
-  const restoreLastFolder = useCallback(async () => {
-    if (restoredRef.current) return
-    restoredRef.current = true
-
-    // Strategy 1: Try localStorage first (most reliable)
-    const localPath = loadFromLocalStorage(LS_MUSIC_PATH_KEY)
-    if (localPath) {
-      console.log('[useLocalLibrary] Restoring from localStorage:', localPath)
-      try {
-        setLoading(true)
-        setRootName(localPath.split('/').pop() || localPath.split('\\').pop() || localPath)
-        const nodes = await readDirectoryNative(localPath)
-        if (nodes.length > 0) {
-          setTree(nodes)
-          // Also sync to Electron settings for persistence across restarts
-          try {
-            if (window.electronAPI?.setLastMusicPath) {
-              await window.electronAPI.setLastMusicPath(localPath)
-            }
-          } catch (e) { /* ignore */ }
-          return
-        }
-      } catch (e) {
-        console.error('[useLocalLibrary] LocalStorage restore failed, trying IPC:', e)
-      }
-    }
-
-    // Strategy 2: Try Electron IPC settings
-    let savedPath: string | null = null
-    try {
-      if (window.electronAPI?.getLastMusicPath) {
-        savedPath = await window.electronAPI.getLastMusicPath()
-      }
-    } catch (e) {
-      console.error('[useLocalLibrary] Failed to get last music path from IPC:', e)
-    }
-
-    if (savedPath && savedPath !== localPath) {
-      console.log('[useLocalLibrary] Restoring from IPC settings:', savedPath)
-      try {
-        setLoading(true)
-        setRootName(savedPath.split('/').pop() || savedPath.split('\\').pop() || savedPath)
-        const nodes = await readDirectoryNative(savedPath)
-        if (nodes.length > 0) {
-          setTree(nodes)
-          saveToLocalStorage(LS_MUSIC_PATH_KEY, savedPath) // Sync to localStorage
-          return
-        }
-      } catch (e) {
-        console.error('[useLocalLibrary] IPC restore failed, trying FSA:', e)
-      }
-    }
-
-    // Strategy 3: Fallback to IndexedDB + FSA
-    const dirHandle = await loadDirHandle()
-    if (!dirHandle) return
-
-    try {
-      setLoading(true)
-      setRootName(dirHandle.name)
-      const nodes = await readDirectoryFSA(dirHandle, '')
-      setTree(nodes)
-    } catch {
-      // permission expired or folder moved, ignore
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
   const toggleExpand = useCallback((id: string) => {
     setTree(prev => toggleNode(prev, id))
   }, [])
 
-  return { tree, setTree, loading, rootName, error, openFolder, toggleExpand, restoreLastFolder }
+  return { tree, setTree, loading, rootName, error, openFolder, toggleExpand }
 }
 
 function toggleNode(nodes: FileNode[], id: string): FileNode[] {

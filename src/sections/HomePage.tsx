@@ -23,13 +23,15 @@ const features: FeatureCard[] = [
     glow: 'rgba(139, 92, 246, 0.4)',
     icon: (
       <svg viewBox="0 0 48 48" fill="none" className="w-10 h-10">
-        <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="2" opacity="0.3" />
-        <circle cx="24" cy="24" r="14" stroke="currentColor" strokeWidth="1.5" opacity="0.2" />
-        <circle cx="24" cy="24" r="6" fill="currentColor" opacity="0.8" />
-        <path d="M24 4v40" stroke="currentColor" strokeWidth="0.5" opacity="0.15" />
-        <path d="M4 24h40" stroke="currentColor" strokeWidth="0.5" opacity="0.15" />
-        <path d="M24 4C24 4 26 12 26 16C26 20 24 24 24 24" fill="currentColor" opacity="0.6" />
-        <path d="M28 8v20h4V4h-4z" fill="currentColor" />
+        {/* Music note stem */}
+        <path d="M20 10 L20 30" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+        <path d="M20 10 Q30 9 31 18 L31 26" stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none"/>
+        {/* Note heads */}
+        <ellipse cx="16.5" cy="32" rx="6" ry="4" fill="currentColor" opacity="0.95" transform="rotate(-12 16.5 32)"/>
+        <ellipse cx="31" cy="28" rx="6" ry="4" fill="currentColor" opacity="0.95" transform="rotate(-12 31 28)"/>
+        {/* Sparkle dots */}
+        <circle cx="36" cy="12" r="1.5" fill="currentColor" opacity="0.5"/>
+        <circle cx="12" cy="12" r="1.2" fill="currentColor" opacity="0.35"/>
       </svg>
     ),
   },
@@ -222,9 +224,16 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
                 animation: 'logo-glow 3s ease-in-out infinite',
               }}
             >
-              <svg viewBox="0 0 32 32" fill="white" className="w-9 h-9">
-                <path d="M16 4C16 4 18 10 18 13C18 16 16 20 16 20" opacity="0.9" />
-                <path d="M20 6v16h3V3h-3z" />
+              <svg viewBox="0 0 32 32" fill="none" className="w-9 h-9">
+                {/* Music note with flowing tail */}
+                <path d="M14 6 L14 22" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+                <path d="M14 6 Q22 5 22.5 12 L22.5 18" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+                {/* Note heads */}
+                <ellipse cx="11.5" cy="23" rx="4.5" ry="3" fill="white" opacity="0.95" transform="rotate(-12 11.5 23)"/>
+                <ellipse cx="22.5" cy="19" rx="4.5" ry="3" fill="white" opacity="0.95" transform="rotate(-12 22.5 19)"/>
+                {/* Sparkle dots */}
+                <circle cx="26" cy="8" r="1" fill="white" opacity="0.5"/>
+                <circle cx="8" cy="8" r="0.8" fill="white" opacity="0.35"/>
               </svg>
             </div>
           </div>

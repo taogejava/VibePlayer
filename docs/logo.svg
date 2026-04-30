@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="30%" stop-color="#a78bfa"/>
+      <stop offset="60%" stop-color="#8b5cf6"/>
+      <stop offset="85%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+    <radialGradient id="bg" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#1e1e3a"/>
+      <stop offset="50%" stop-color="#16213e"/>
+      <stop offset="100%" stop-color="#0d0d1f"/>
+    </radialGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="226" fill="url(#bg)"/>
+  <!-- Grid -->
+  <g stroke="rgba(255,255,255,0.025)" stroke-width="1">
+    <line x1="0" y1="200" x2="1024" y2="200"/><line x1="0" y1="400" x2="1024" y2="400"/>
+    <line x1="0" y1="600" x2="1024" y2="600"/><line x1="0" y1="800" x2="1024" y2="800"/>
+    <line x1="200" y1="0" x2="200" y2="1024"/><line x1="400" y1="0" x2="400" y2="1024"/>
+    <line x1="600" y1="0" x2="600" y2="1024"/><line x1="800" y1="0" x2="800" y2="1024"/>
+  </g>
+  <!-- Glow -->
+  <circle cx="420" cy="500" r="350" fill="rgba(139,92,246,0.12)"/>
+  <circle cx="620" cy="430" r="300" fill="rgba(6,182,212,0.10)"/>
+  <!-- Left note stem -->
+  <line x1="370" y1="260" x2="370" y2="680" stroke="url(#g)" stroke-width="20" stroke-linecap="round"/>
+  <!-- Left note head -->
+  <ellipse cx="335" cy="710" rx="80" ry="52" fill="url(#g)" transform="rotate(-12 335 710)"/>
+  <!-- Top beam -->
+  <path d="M370,260 Q510,225 600,270" fill="none" stroke="url(#g)" stroke-width="20" stroke-linecap="round"/>
+  <!-- Second beam -->
+  <path d="M370,325 Q505,295 600,335" fill="none" stroke="url(#g)" stroke-width="16" stroke-linecap="round" opacity="0.55"/>
+  <!-- Right note stem -->
+  <line x1="600" y1="270" x2="600" y2="615" stroke="url(#g)" stroke-width="20" stroke-linecap="round"/>
+  <!-- Right note head -->
+  <ellipse cx="565" cy="645" rx="80" ry="52" fill="url(#g)" transform="rotate(-12 565 645)"/>
+  <!-- Sparkles -->
+  <circle cx="700" cy="200" r="7" fill="white" opacity="0.8"/>
+  <circle cx="240" cy="310" r="5.5" fill="white" opacity="0.55"/>
+  <circle cx="750" cy="460" r="5" fill="white" opacity="0.45"/>
+  <circle cx="195" cy="560" r="4.5" fill="white" opacity="0.35"/>
+  <circle cx="690" cy="710" r="5.5" fill="white" opacity="0.4"/>
+  <circle cx="290" cy="810" r="4" fill="white" opacity="0.28"/>
+  <circle cx="780" cy="280" r="3.5" fill="white" opacity="0.3"/>
+  <!-- Highlight -->
+  <rect width="1024" height="260" rx="226" fill="rgba(255,255,255,0.04)"/>
+</svg>
