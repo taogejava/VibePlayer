@@ -36,6 +36,16 @@
   <br><em>Lyrics View — LRC sync scrolling</em>
 </p>
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/v1.3.3/choose-theme.png" alt="Choose Theme" width="700">
+  <br><em>Choose Theme — 13 built-in themes + custom</em>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/v1.3.3/choose-font.png" alt="Choose Font" width="700">
+  <br><em>Choose Font — 6 Chinese fonts one-click switch</em>
+</p>
+
 ---
 
 ## ✨ Features

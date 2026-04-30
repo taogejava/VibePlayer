@@ -36,6 +36,16 @@
   <br><em>歌词界面 — LRC 同步滚动</em>
 </p>
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/v1.3.3/choose-theme.png" alt="选择主题" width="700">
+  <br><em>选择主题 — 13 款精选主题 + 自定义</em>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/v1.3.3/choose-font.png" alt="选择字体" width="700">
+  <br><em>选择字体 — 6 种中文字体一键切换</em>
+</p>
+
 ---
 
 ## ✨ 功能概览
