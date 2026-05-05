@@ -52,9 +52,14 @@ export default function SpectrumVisualizer({ isPlaying, colors: propsColors, aud
   const analyserRef = useRef<AnalyserNode | null>(null)
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
   const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
+  const audioElementRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
-    if (!audioElement) return
+    audioElementRef.current = audioElement ?? null
+  }, [audioElement])
+
+  useEffect(() => {
+    if (!audioElementRef.current) return
 
     const initAudioAnalyser = () => {
       try {
@@ -65,16 +70,18 @@ export default function SpectrumVisualizer({ isPlaying, colors: propsColors, aud
           analyserRef.current.smoothingTimeConstant = 0.8
           dataArrayRef.current = new Uint8Array(analyserRef.current.frequencyBinCount)
 
-          sourceRef.current = audioContextRef.current.createMediaElementSource(audioElement)
-          sourceRef.current.connect(analyserRef.current)
-          analyserRef.current.connect(audioContextRef.current.destination)
+          if (audioElementRef.current) {
+            sourceRef.current = audioContextRef.current.createMediaElementSource(audioElementRef.current)
+            sourceRef.current.connect(analyserRef.current)
+            analyserRef.current.connect(audioContextRef.current.destination)
+          }
         }
       } catch (e) {
         console.warn('Audio analyser init failed:', e)
       }
     }
 
-    if (isPlaying && audioElement.src) {
+    if (isPlaying && audioElementRef.current?.src) {
       if (audioContextRef.current?.state === 'suspended') {
         audioContextRef.current.resume()
       }
@@ -84,7 +91,7 @@ export default function SpectrumVisualizer({ isPlaying, colors: propsColors, aud
     }
 
     return () => {}
-  }, [audioElement, isPlaying])
+  }, [isPlaying])
 
   useEffect(() => {
     const container = containerRef.current

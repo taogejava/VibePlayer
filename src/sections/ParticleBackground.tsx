@@ -18,12 +18,16 @@ interface Particle {
   maxLife: number
 }
 
+const DEFAULT_PARTICLE_COUNT = 60
+const DEFAULT_FRAME_RATE = 60
+
 export default function ParticleBackground({ colors: propsColors, isPlaying }: Props) {
   const { theme } = useTheme()
   const colors = propsColors || theme.colors.particleColors
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const particlesRef = useRef<Particle[]>([])
   const frameRef = useRef<number | undefined>(undefined)
+  const lastFrameTimeRef = useRef<number>(0)
   const isPlayingRef = useRef(isPlaying)
   const colorsRef = useRef(colors)
 
@@ -43,14 +47,19 @@ export default function ParticleBackground({ colors: propsColors, isPlaying }: P
     resize()
     window.addEventListener('resize', resize)
 
-    // Initialize static particles
-    for (let i = 0; i < 40; i++) {
-      particlesRef.current.push(createParticle(canvas.width, canvas.height, colorsRef.current, true))
+    const initParticles = () => {
+      particlesRef.current = []
+      const initStaticCount = Math.floor(DEFAULT_PARTICLE_COUNT * 0.4)
+      for (let i = 0; i < initStaticCount; i++) {
+        particlesRef.current.push(createParticle(canvas.width, canvas.height, colorsRef.current, true))
+      }
     }
 
+    initParticles()
+
     const spawn = () => {
-      if (isPlayingRef.current && particlesRef.current.length < 120) {
-        const count = Math.floor(Math.random() * 3) + 1
+      if (isPlayingRef.current && particlesRef.current.length < DEFAULT_PARTICLE_COUNT) {
+        const count = Math.floor(Math.random() * 2) + 1
         for (let j = 0; j < count; j++) {
           particlesRef.current.push(createParticle(canvas.width, canvas.height, colorsRef.current, false))
         }
@@ -58,16 +67,30 @@ export default function ParticleBackground({ colors: propsColors, isPlaying }: P
     }
     const spawnInterval = setInterval(spawn, 200)
 
-    const draw = () => {
+    const draw = (timestamp: number) => {
+      const frameInterval = 1000 / DEFAULT_FRAME_RATE
+      if (timestamp - lastFrameTimeRef.current < frameInterval) {
+        frameRef.current = requestAnimationFrame(draw)
+        return
+      }
+      lastFrameTimeRef.current = timestamp
+
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
       particlesRef.current = particlesRef.current.filter(p => p.life > 0)
+
+      const staticCount = Math.floor(DEFAULT_PARTICLE_COUNT * 0.4)
+      if (particlesRef.current.length < staticCount) {
+        for (let i = 0; i < Math.min(5, staticCount - particlesRef.current.length); i++) {
+          particlesRef.current.push(createParticle(canvas.width, canvas.height, colorsRef.current, true))
+        }
+      }
 
       for (const p of particlesRef.current) {
         p.x += p.vx
         p.y += p.vy
         p.life -= 1
-        p.opacity = Math.min(1, p.life / (p.maxLife * 0.3)) * Math.min(1, p.life / p.maxLife * 3) * 0.7
+        p.opacity = Math.min(1, p.life / (p.maxLife * 0.3)) * Math.min(1, p.life / p.maxLife * 3) * 0.6
 
         if (p.life <= 0) continue
 
@@ -76,11 +99,10 @@ export default function ParticleBackground({ colors: propsColors, isPlaying }: P
         ctx.fillStyle = p.color + Math.floor(p.opacity * 255).toString(16).padStart(2, '0')
         ctx.fill()
 
-        // Glow
         ctx.beginPath()
-        ctx.arc(p.x, p.y, p.r * 2, 0, Math.PI * 2)
-        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2)
-        gradient.addColorStop(0, p.color + Math.floor(p.opacity * 0.4 * 255).toString(16).padStart(2, '0'))
+        ctx.arc(p.x, p.y, p.r * 1.5, 0, Math.PI * 2)
+        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 1.5)
+        gradient.addColorStop(0, p.color + Math.floor(p.opacity * 0.3 * 255).toString(16).padStart(2, '0'))
         gradient.addColorStop(1, p.color + '00')
         ctx.fillStyle = gradient
         ctx.fill()
@@ -109,15 +131,17 @@ export default function ParticleBackground({ colors: propsColors, isPlaying }: P
 
 function createParticle(w: number, h: number, colors: string[], isStatic: boolean): Particle {
   const angle = Math.random() * Math.PI * 2
-  const speed = isStatic ? 0.2 + Math.random() * 0.3 : 0.5 + Math.random() * 1.5
+  const baseSpeed = isStatic ? 0.2 + Math.random() * 0.3 : 0.5 + Math.random() * 1.5
+  const speed = baseSpeed * 1.0
   const maxLife = isStatic ? 300 + Math.random() * 200 : 80 + Math.random() * 120
+  const r = isStatic ? 1 + Math.random() * 2 : 2 + Math.random() * 3
 
   return {
     x: Math.random() * w,
     y: isStatic ? Math.random() * h : h * 0.7 + Math.random() * h * 0.3,
     vx: Math.cos(angle) * speed * (isStatic ? 0.5 : 1),
     vy: isStatic ? -0.1 - Math.random() * 0.2 : -speed * 0.8 - Math.random() * 1,
-    r: isStatic ? 1 + Math.random() * 2 : 2 + Math.random() * 3,
+    r,
     opacity: 0,
     color: colors[Math.floor(Math.random() * colors.length)],
     life: maxLife,

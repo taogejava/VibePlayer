@@ -233,13 +233,11 @@ export default function LyricsPanel({
               <div
                 key={i}
                 ref={el => { lineRefs.current[i] = el }}
-                className={`text-center transition-all duration-500 select-none ${
-                  isActive ? 'lyric-active' : ''
-                }`}
+                className={`text-center transition-all duration-500 select-none w-full`}
                 style={{
                   fontSize: fullscreen
-                    ? isActive ? '1.35rem' : '1rem'
-                    : isActive ? '1.1rem' : '0.9rem',
+                    ? isActive ? '1.5rem' : '1.1rem'
+                    : isActive ? '1.25rem' : '1rem',
                   fontWeight: isActive ? 700 : 400,
                   color: isActive
                     ? 'var(--theme-text-primary, #ffffff)'
@@ -252,6 +250,8 @@ export default function LyricsPanel({
                   transform: isActive ? 'scale(1.02)' : 'scale(1)',
                   lineHeight: 1.8,
                   padding: '6px 8px',
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
                 }}
               >
                 {line.text}

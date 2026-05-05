@@ -605,7 +605,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
 
   return (
     <div
-      className="relative w-full h-full flex items-center justify-center overflow-hidden transition-all duration-1000"
+      className="relative w-full h-full overflow-hidden transition-all duration-1000"
       style={{ background: 'var(--theme-bg-primary, #0a0a1a)', color: 'var(--theme-text-primary, #ffffff)' }}
     >
       
@@ -686,7 +686,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
 
       {/* Main container (hidden when video overlay is active) */}
       {!showVideoOverlay && (
-        <div className="relative z-10 w-full max-w-6xl mx-auto px-4 py-6 flex flex-col h-full">
+        <div className="relative z-10 w-full pl-4 py-6 flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -804,7 +804,7 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
               {/* Player content — two modes: list mode vs fullscreen lyrics mode */}
               <div
                 className="flex flex-col items-center shrink-0 transition-all duration-500 ease-out relative z-10 flex-1"
-                style={{ paddingRight: rightPanel ? 296 : 0 }}
+                style={{ paddingRight: rightPanel ? 280 : 0 }}
               >
                 {song ? (
                   <>
@@ -964,9 +964,9 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
                 />
               )}
               {rightPanel === 'lyrics' && (
-                <div className="h-full flex flex-col rounded-2xl">
+                <div className="h-full flex flex-col">
                   {/* Lyrics header */}
-                  <div className="px-4 py-3 flex items-center gap-2 rounded-t-2xl"
+                  <div className="px-4 py-3 flex items-center gap-2"
                     style={{ borderBottom: '1px solid var(--theme-bg-tertiary, #1e1e3a)' }}>
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 shrink-0" style={{ color: 'var(--theme-text-muted, #9ca3af)', opacity: 0.4 }}>
                       <path d="M10 4v8.5c-.3-.1-.6-.3-.9-.3-1.3-.5-2.8.2-3.3 1.4-.5 1.3.2 2.6 1.4 3.1 1.3.5 2.8-.2 3.3-1.4.1-.2.1-.5.1-.7V7.5h4v7.5c-.3-.1-.6-.3-.9-.3-1.3-.5-2.8.2-3.3 1.4-.5 1.3.2 2.6 1.4 3.1 1.3.5 2.8-.2 3.3-1.4.1-.2.1-.5.1-.7V4h-5.2z"/>
