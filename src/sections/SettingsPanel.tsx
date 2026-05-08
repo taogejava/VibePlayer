@@ -1,24 +1,74 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../ThemeContext';
 import { presetColors } from '../theme';
 import type { ThemeMode } from '../theme';
+import { useAudioContext, EQ_PRESETS, type EQPreset } from '../hooks/useAudioContext';
 
 interface SettingsPanelProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+const FREQ_LABELS = ['32', '64', '125', '250', '500', '1k', '2k', '4k', '8k', '16k'];
+
+type TabId = 'theme' | 'display' | 'font' | 'eq';
+
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
   const { mode, setMode, primaryColor, setPrimaryColor, schedule, setSchedule, fontId, setFontId, fonts, isDark } = useTheme();
-  const [activeTab, setActiveTab] = useState<'theme' | 'display' | 'font'>('theme');
-  const [customColorInput, setCustomColorInput] = useState(primaryColor);
+  const { getEQGains, setEQGain, applyPreset: applyEQPreset, getCurrentPresetName } = useAudioContext();
 
-  if (!isOpen) return null;
+  const [activeTab, setActiveTab] = useState<TabId>('theme');
+  const [customColorInput, setCustomColorInput] = useState(primaryColor);
+  const [eqGains, setEqGains] = useState<number[]>(new Array(10).fill(0));
+  const [activeEQPreset, setActiveEQPreset] = useState<string>('关闭');
+
+  // Sync EQ gains from audio engine
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'eq') return
+    const interval = setInterval(() => {
+      setEqGains(getEQGains())
+      setActiveEQPreset(getCurrentPresetName())
+    }, 300)
+    return () => clearInterval(interval)
+  }, [isOpen, activeTab, getEQGains, getCurrentPresetName])
 
   const handleCustomColorChange = (color: string) => {
     setCustomColorInput(color);
     setPrimaryColor(color);
   };
+
+  const handleGainChange = useCallback((index: number, value: number) => {
+    const gain = Math.round(value * 12) / 12
+    setEQGain(index, gain)
+    setEqGains(prev => {
+      const next = [...prev]
+      next[index] = gain
+      return next
+    })
+    setActiveEQPreset('自定义')
+  }, [setEQGain])
+
+  const handleEQPreset = useCallback((preset: EQPreset) => {
+    applyEQPreset(preset)
+    setEqGains([...preset.gains])
+    setActiveEQPreset(preset.name)
+  }, [applyEQPreset])
+
+  const handleEQReset = useCallback(() => {
+    const offPreset = EQ_PRESETS[0]
+    applyEQPreset(offPreset)
+    setEqGains(new Array(10).fill(0))
+    setActiveEQPreset('关闭')
+  }, [applyEQPreset])
+
+  if (!isOpen) return null;
+
+  const tabs: { id: TabId; icon: string; label: string }[] = [
+    { id: 'theme', icon: '🎨', label: '颜色' },
+    { id: 'display', icon: isDark ? '🌙' : '☀️', label: '显示' },
+    { id: 'font', icon: '🔤', label: '字体' },
+    { id: 'eq', icon: '🎚️', label: '音效' },
+  ];
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
@@ -41,57 +91,58 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
           <h2 className="text-xl font-bold" style={{ color: 'var(--theme-text-primary, #ffffff)' }}>
             设置
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg transition-colors"
-            style={{ color: 'var(--theme-text-muted, #9ca3af)' }}
-            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--theme-text-primary, #ffffff)'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--theme-text-muted, #9ca3af)'}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-3">
+            {/* 快速切换深浅色 */}
+            <button
+              onClick={() => setMode(isDark ? 'light' : 'dark')}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all duration-200 hover:scale-105"
+              style={{
+                backgroundColor: 'var(--theme-bg-tertiary, #1e1e3a)',
+                color: 'var(--theme-text-secondary, #d1d5db)',
+                border: '1px solid var(--theme-bg-tertiary, #1e1e3a)',
+              }}
+              title={isDark ? '切换到浅色模式' : '切换到深色模式'}
+            >
+              <span>{isDark ? '☀️' : '🌙'}</span>
+              <span className="text-xs">{isDark ? '浅色' : '深色'}</span>
+            </button>
+            {/* 关闭按钮 */}
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: 'var(--theme-text-muted, #9ca3af)' }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--theme-text-primary, #ffffff)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--theme-text-muted, #9ca3af)'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Tab 切换 */}
-        <div className="flex px-6 pt-4 gap-2">
-          <button
-            onClick={() => setActiveTab('theme')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all`}
-            style={{
-              backgroundColor: activeTab === 'theme' ? 'var(--theme-primary, #8b5cf6)' : 'transparent',
-              color: activeTab === 'theme' ? '#fff' : 'var(--theme-text-muted, #9ca3af)'
-            }}
-          >
-            🎨 颜色
-          </button>
-          <button
-            onClick={() => setActiveTab('display')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all`}
-            style={{
-              backgroundColor: activeTab === 'display' ? 'var(--theme-primary, #8b5cf6)' : 'transparent',
-              color: activeTab === 'display' ? '#fff' : 'var(--theme-text-muted, #9ca3af)'
-            }}
-          >
-            {isDark ? '🌙' : '☀️'} 显示
-          </button>
-          <button
-            onClick={() => setActiveTab('font')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all`}
-            style={{
-              backgroundColor: activeTab === 'font' ? 'var(--theme-primary, #8b5cf6)' : 'transparent',
-              color: activeTab === 'font' ? '#fff' : 'var(--theme-text-muted, #9ca3af)'
-            }}
-          >
-            🔤 字体
-          </button>
+        <div className="flex px-4 pt-3 gap-1 overflow-x-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap"
+              style={{
+                backgroundColor: activeTab === tab.id ? 'var(--theme-primary, #8b5cf6)' : 'transparent',
+                color: activeTab === tab.id ? '#fff' : 'var(--theme-text-muted, #9ca3af)'
+              }}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </div>
 
         {/* 内容区域 */}
         <div className="px-6 pb-6 pt-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
           
-          {/* 颜色选项卡 */}
+          {/* ========== 颜色 tab ========== */}
           {activeTab === 'theme' && (
             <div className="space-y-5">
               {/* 预设颜色 */}
@@ -176,7 +227,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
             </div>
           )}
 
-          {/* 显示模式选项卡 */}
+          {/* ========== 显示 tab ========== */}
           {activeTab === 'display' && (
             <div className="space-y-5">
               {/* 模式选择 */}
@@ -314,7 +365,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
             </div>
           )}
 
-          {/* 字体选项卡 */}
+          {/* ========== 字体 tab ========== */}
           {activeTab === 'font' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -364,6 +415,201 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
                   The quick brown fox jumps over the lazy dog.
                   <br />
                   敏捷的棕色狐狸跳过了懒惰的狗。
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========== 音效 tab (EQ) ========== */}
+          {activeTab === 'eq' && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--theme-text-secondary, #d1d5db)' }}>
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M12 4v16m-8-8h16" strokeLinecap="round"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  均衡器
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span 
+                    className="text-xs px-3 py-1 rounded-full font-medium" 
+                    style={{
+                      background: 'linear-gradient(135deg, var(--theme-primary-alpha-20, rgba(139,92,246,0.2)), var(--theme-primary-alpha-5, rgba(139,92,246,0.05)))',
+                      color: 'var(--theme-primary, #8b5cf6)',
+                      border: '1px solid var(--theme-primary-alpha-25, rgba(139,92,246,0.25))'
+                    }}
+                  >
+                    {activeEQPreset}
+                  </span>
+                  <button
+                    onClick={handleEQReset}
+                    className="text-xs px-3 py-1 rounded-full transition-all duration-200"
+                    style={{
+                      backgroundColor: 'var(--theme-bg-tertiary, #1e1e3a)',
+                      color: 'var(--theme-text-muted, #9ca3af)'
+                    }}
+                    onMouseEnter={(e) => { 
+                      e.currentTarget.style.color = 'var(--theme-text-primary, #ffffff)'
+                      e.currentTarget.style.backgroundColor = 'var(--theme-bg-tertiary-hover, #252545)'
+                    }}
+                    onMouseLeave={(e) => { 
+                      e.currentTarget.style.color = 'var(--theme-text-muted, #9ca3af)'
+                      e.currentTarget.style.backgroundColor = 'var(--theme-bg-tertiary, #1e1e3a)'
+                    }}
+                  >
+                    重置
+                  </button>
+                </div>
+              </div>
+
+              {/* EQ Container */}
+              <div 
+                className="rounded-2xl p-4"
+                style={{ 
+                  background: 'linear-gradient(180deg, var(--theme-bg-tertiary, #1e1e3a) 0%, var(--theme-bg-primary, #0a0a1a) 100%)',
+                  border: '1px solid var(--theme-bg-tertiary, #1e1e3a)'
+                }}
+              >
+                {/* EQ Sliders */}
+                <div className="flex items-end justify-between gap-0.5" style={{ height: 160 }}>
+                  {eqGains.map((gain, i) => {
+                    const pct = ((gain + 12) / 24) * 100
+                    const isActive = gain !== 0
+                    return (
+                      <div key={i} className="flex flex-col items-center gap-1.5 flex-1">
+                        {/* dB label */}
+                        <span 
+                          className="text-[10px] tabular-nums font-medium transition-all duration-200" 
+                          style={{
+                            color: isActive ? 'var(--theme-primary, #8b5cf6)' : 'var(--theme-text-muted, #9ca3af)',
+                            opacity: isActive ? 1 : 0.5
+                          }}
+                        >
+                          {gain > 0 ? '+' : ''}{gain.toFixed(0)}
+                        </span>
+                        {/* Slider track container */}
+                        <div className="relative flex-1 w-5 flex items-center justify-center">
+                          {/* Vertical bar */}
+                          <div
+                            className="relative w-2 h-full rounded-full overflow-hidden cursor-pointer group"
+                            style={{ 
+                              backgroundColor: 'var(--theme-bg-primary, #0a0a1a)',
+                              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)'
+                            }}
+                            onClick={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect()
+                              const y = 1 - (e.clientY - rect.top) / rect.height
+                              const val = (y * 24) - 12
+                              handleGainChange(i, Math.max(-12, Math.min(12, val)))
+                            }}
+                          >
+                            {/* Active fill */}
+                            <div
+                              className="absolute left-0 right-0 rounded-full transition-all duration-100 ease-out"
+                              style={{
+                                background: isActive 
+                                  ? 'linear-gradient(180deg, var(--theme-primary, #8b5cf6) 0%, var(--theme-secondary, #06b6d4) 100%)'
+                                  : 'transparent',
+                                bottom: 0,
+                                height: `${Math.max(pct, 0)}%`,
+                                opacity: isActive ? 0.8 : 0.3
+                              }}
+                            />
+                            {/* Glow effect */}
+                            {isActive && (
+                              <div
+                                className="absolute left-0 right-0 rounded-full transition-all duration-100"
+                                style={{
+                                  background: 'var(--theme-primary, #8b5cf6)',
+                                  bottom: `calc(${pct}% - 6px)`,
+                                  height: '12px',
+                                  filter: 'blur(8px)',
+                                  opacity: 0.5
+                                }}
+                              />
+                            )}
+                            {/* Center line (0 dB) */}
+                            <div
+                              className="absolute left-0 right-0"
+                              style={{
+                                top: '50%',
+                                height: '1px',
+                                backgroundColor: 'var(--theme-text-muted, #9ca3af)',
+                                opacity: 0.15,
+                                transform: 'translateY(-50%)'
+                              }}
+                            />
+                            {/* Thumb */}
+                            <div
+                              className="absolute left-1/2 -translate-x-1/2 w-3 h-3 rounded-full transition-all duration-100"
+                              style={{
+                                bottom: `calc(${pct}% - 6px)`,
+                                backgroundColor: isActive ? 'var(--theme-primary, #8b5cf6)' : 'var(--theme-text-muted, #9ca3af)',
+                                boxShadow: isActive 
+                                  ? '0 0 12px var(--theme-glow, rgba(139,92,246,0.6)), 0 2px 4px rgba(0,0,0,0.3)' 
+                                  : '0 2px 4px rgba(0,0,0,0.3)',
+                                transform: `translateX(-50%) ${isActive ? 'scale(1)' : 'scale(0.8)'}`
+                              }}
+                            />
+                          </div>
+                        </div>
+                        {/* Freq label */}
+                        <span className="text-[10px] font-medium" style={{ color: 'var(--theme-text-muted, #9ca3af)', opacity: 0.7 }}>
+                          {FREQ_LABELS[i]}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* dB scale labels */}
+                <div className="flex justify-between mt-3 px-2">
+                  <span className="text-[10px] font-medium" style={{ color: 'var(--theme-text-muted, #9ca3af)', opacity: 0.5 }}>+12dB</span>
+                  <span className="text-[10px] font-medium" style={{ color: 'var(--theme-text-muted, #9ca3af)', opacity: 0.3 }}>0dB</span>
+                  <span className="text-[10px] font-medium" style={{ color: 'var(--theme-text-muted, #9ca3af)', opacity: 0.5 }}>-12dB</span>
+                </div>
+              </div>
+
+              {/* Preset buttons */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--theme-text-secondary, #d1d5db)' }}>
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M12 3v18M7 12h10" strokeLinecap="round"/>
+                  </svg>
+                  音效预设
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {EQ_PRESETS.map((preset) => (
+                    <button
+                      key={preset.name}
+                      onClick={() => handleEQPreset(preset)}
+                      className="px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200"
+                      style={{
+                        background: activeEQPreset === preset.name 
+                          ? 'linear-gradient(135deg, var(--theme-primary-alpha-20, rgba(139,92,246,0.2)), var(--theme-primary-alpha-5, rgba(139,92,246,0.05)))'
+                          : 'var(--theme-bg-tertiary, #1e1e3a)',
+                        color: activeEQPreset === preset.name ? 'var(--theme-primary, #8b5cf6)' : 'var(--theme-text-muted, #9ca3af)',
+                        border: `1px solid ${activeEQPreset === preset.name ? 'var(--theme-primary-alpha-30, rgba(139,92,246,0.3))' : 'transparent'}`,
+                        boxShadow: activeEQPreset === preset.name ? '0 4px 16px var(--theme-primary-alpha-10, rgba(139,92,246,0.1))' : 'none'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (activeEQPreset !== preset.name) {
+                          e.currentTarget.style.color = 'var(--theme-text-primary, #ffffff)'
+                          e.currentTarget.style.backgroundColor = 'var(--theme-bg-tertiary-hover, #252545)'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (activeEQPreset !== preset.name) {
+                          e.currentTarget.style.color = 'var(--theme-text-muted, #9ca3af)'
+                          e.currentTarget.style.backgroundColor = 'var(--theme-bg-tertiary, #1e1e3a)'
+                        }
+                      }}
+                    >
+                      {preset.name}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>

@@ -21,7 +21,6 @@ import { usePlayHistory } from '../hooks/usePlayHistory'
 import OnlineSearchPanel from './OnlineSearchPanel'
 import { useTheme } from '../ThemeContext'
 import { SettingsPanel } from './SettingsPanel'
-import EQPanel from './EQPanel'
 import ListeningReport from './ListeningReport'
 
 export interface Song {
@@ -164,7 +163,6 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
   const [panel, setPanel] = useState<Panel>((initialPanel as Panel) || 'library')
   const [liked, setLiked] = useState<Set<number>>(new Set())
   const [showSettings, setShowSettings] = useState(false)
-  const [showEQ, setShowEQ] = useState(false)
   const [showReport, setShowReport] = useState(false)
   const { isDark, setMode } = useTheme()
   const { history: playHistory, recordPlayTime } = usePlayHistory()
@@ -779,24 +777,6 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
                 </svg>
               </button>
 
-              {/* EQ button */}
-              <button
-                onClick={() => setShowEQ(true)}
-                className="p-2 rounded-lg transition-all duration-200 hover:scale-110"
-                style={{
-                  backgroundColor: 'var(--theme-bg-tertiary, #1e1e3a)',
-                  color: 'var(--theme-text-muted, #9ca3af)',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--theme-text-primary, #ffffff)'}
-                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--theme-text-muted, #9ca3af)'}
-                title="均衡器"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 18v-6a9 9 0 0118 0v6M3 18h2m14 0h2M5 12v4a1 1 0 001 1h12a1 1 0 001-1v-4" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 15V9m10 6V9m-5 6v-3" />
-                </svg>
-              </button>
-
               {/* Report button */}
               <button
                 onClick={() => setShowReport(true)}
@@ -1199,7 +1179,6 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
 
       {/* Settings panel */}
       <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
-      <EQPanel isOpen={showEQ} onClose={() => setShowEQ(false)} />
       <ListeningReport history={playHistory} isOpen={showReport} onClose={() => setShowReport(false)} />
     </div>
   )
