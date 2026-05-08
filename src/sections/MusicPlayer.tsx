@@ -17,9 +17,12 @@ import { useWebDAV, type WebDAVFile } from '../hooks/useWebDAV'
 import { useAList, type AListFile } from '../hooks/useAList'
 import { useLyricsSearch } from '../hooks/useLyricsSearch'
 import { useOnlineSearch } from '../hooks/useOnlineSearch'
+import { usePlayHistory } from '../hooks/usePlayHistory'
 import OnlineSearchPanel from './OnlineSearchPanel'
 import { useTheme } from '../ThemeContext'
 import { SettingsPanel } from './SettingsPanel'
+import EQPanel from './EQPanel'
+import ListeningReport from './ListeningReport'
 
 export interface Song {
   id: number
@@ -161,7 +164,10 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
   const [panel, setPanel] = useState<Panel>((initialPanel as Panel) || 'library')
   const [liked, setLiked] = useState<Set<number>>(new Set())
   const [showSettings, setShowSettings] = useState(false)
-  useTheme()
+  const [showEQ, setShowEQ] = useState(false)
+  const [showReport, setShowReport] = useState(false)
+  const { isDark, setMode } = useTheme()
+  const { history: playHistory, recordPlayTime } = usePlayHistory()
 
   // ---------- Audio element ----------
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -257,6 +263,11 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
         } else {
           setProgress(audio.currentTime)
           setDuration(audio.duration || 0)
+          // Record play duration for report
+          const currentSong = songsRef.current[currentIndex]
+          if (currentSong) {
+            recordPlayTime(`${currentSong.title}|${currentSong.artist}`)
+          }
         }
       }, 200)
     }
@@ -444,6 +455,17 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
       audioRef.current.currentTime = v
     }
   }
+
+  // System media keys (keyboard / headset) — must be after handler definitions
+  useEffect(() => {
+    if (!window.electronAPI?.onMediaKey) return
+    const cleanup = window.electronAPI.onMediaKey((action) => {
+      if (action === 'play-pause') handlePlayPause()
+      else if (action === 'next') handleNext()
+      else if (action === 'prev') handlePrev()
+    })
+    return cleanup
+  }, [handlePlayPause, handleNext, handlePrev])
 
   // Play from local file tree
   const handlePlayLocalFile = useCallback((node: FileNode) => {
@@ -716,6 +738,29 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
               <span className="font-semibold text-sm tracking-widest uppercase" style={{ color: 'var(--theme-text-primary, #ffffff)', opacity: 0.8 }}>VibePlayer</span>
             </div>
             <div className="flex items-center gap-2">
+              {/* Display mode toggle */}
+              <button
+                onClick={() => setMode(isDark ? 'light' : 'dark')}
+                className="p-2 rounded-lg transition-all duration-200 hover:scale-110"
+                style={{
+                  backgroundColor: 'var(--theme-bg-tertiary, #1e1e3a)',
+                  color: 'var(--theme-text-muted, #9ca3af)',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--theme-text-primary, #ffffff)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--theme-text-muted, #9ca3af)'}
+                title={isDark ? '切换到浅色模式' : '切换到深色模式'}
+              >
+                {isDark ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
+
               {/* Settings button */}
               <button
                 onClick={() => setShowSettings(true)}
@@ -733,7 +778,42 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 </svg>
               </button>
-              
+
+              {/* EQ button */}
+              <button
+                onClick={() => setShowEQ(true)}
+                className="p-2 rounded-lg transition-all duration-200 hover:scale-110"
+                style={{
+                  backgroundColor: 'var(--theme-bg-tertiary, #1e1e3a)',
+                  color: 'var(--theme-text-muted, #9ca3af)',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--theme-text-primary, #ffffff)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--theme-text-muted, #9ca3af)'}
+                title="均衡器"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 18v-6a9 9 0 0118 0v6M3 18h2m14 0h2M5 12v4a1 1 0 001 1h12a1 1 0 001-1v-4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 15V9m10 6V9m-5 6v-3" />
+                </svg>
+              </button>
+
+              {/* Report button */}
+              <button
+                onClick={() => setShowReport(true)}
+                className="p-2 rounded-lg transition-all duration-200 hover:scale-110"
+                style={{
+                  backgroundColor: 'var(--theme-bg-tertiary, #1e1e3a)',
+                  color: 'var(--theme-text-muted, #9ca3af)',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--theme-text-primary, #ffffff)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--theme-text-muted, #9ca3af)'}
+                title="听歌报告"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </button>
+
               {PANEL_CONFIG.map(p => {
                 const active = panel === p.key
                 return (
@@ -1119,6 +1199,8 @@ export default function MusicPlayer({ initialPanel, onBackToHome }: MusicPlayerP
 
       {/* Settings panel */}
       <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      <EQPanel isOpen={showEQ} onClose={() => setShowEQ(false)} />
+      <ListeningReport history={playHistory} isOpen={showReport} onClose={() => setShowReport(false)} />
     </div>
   )
 }

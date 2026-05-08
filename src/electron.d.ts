@@ -32,6 +32,8 @@ interface ElectronAPI {
   openFolderDialog: () => Promise<string | null>
   readDirectory: (dirPath: string) => Promise<FileSystemEntry[] | null>
   readVideoDirectory: (dirPath: string) => Promise<FileSystemEntry[] | null>
+  // System Media Keys
+  onMediaKey: (callback: (action: 'play-pause' | 'next' | 'prev') => void) => () => void
 }
 
 interface Window {

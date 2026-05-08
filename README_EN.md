@@ -10,6 +10,15 @@
 
 ## 📋 Changelog
 
+### v1.6.0 (2026-05-08)
+
+- 🎨 **Theme System Refactor** — Pick a color, auto-generate complete light/dark themes. Replaced 13 fixed presets with 8 curated colors + custom color picker
+- 🌓 **Display Mode** — Four modes: Light / Dark / Follow System / Scheduled switching, with one-click quick toggle on homepage
+- 🏠 **Homepage Layout** — 4-column adaptive grid, 7 cards in a more compact layout
+- 🎚️ **10-Band Equalizer** — 10-band EQ sliders + 7 presets (Pop/Rock/Classical/Vocal/Electronic/Bass Boost/Treble Boost)
+- 📊 **Listening Report** — Play history visual analytics — listening duration, top songs, play distribution
+- 🎹 **System Media Keys** — Keyboard media key support (play/pause, next, prev), globally responsive
+
 ### v1.3.3 (2026-04-30)
 
 - 🎨 **New Logo Design** — "Flowing Note" concept with purple-cyan gradient dual notes and sparkle particles, all icons unified
@@ -38,7 +47,7 @@
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/taogejava/VibePlayer/master/docs/screenshots/v1.3.3/choose-theme.png" alt="Choose Theme" width="700">
-  <br><em>Choose Theme — 13 built-in themes + custom</em>
+  <br><em>Settings — Color / Display / Font tabs</em>
 </p>
 
 <p align="center">
@@ -52,10 +61,12 @@
 
 | Feature | Description |
 |---------|-------------|
-| 🏠 Stunning Homepage | Particle animations + floating orbs, 6 feature cards with one-click access |
+| 🏠 Stunning Homepage | Particle animations + floating orbs, 7 feature cards with one-click access, 4-column adaptive layout |
 | 🌌 Particle Background Effects | Real-time Canvas floating particles with glowing trails, auto-generated during playback |
 | 💿 Vinyl Record Animation | Auto-rotating disc when playing, conic gradient textures with dynamic glow |
-| 📊 Spectrum Visualizer | 32 colorful spectrum bars pulsing to the music, colors change with song theme |
+| 📊 Spectrum Visualizer | 48 colorful spectrum bars pulsing to the music, colors change with song theme |
+| 🎚️ 10-Band Equalizer | 10-band EQ sliders + 7 presets (Pop/Rock/Classical/Vocal/Electronic/Bass Boost/Treble Boost) |
+| 📊 Listening Report | Play history visual analytics — listening duration, top songs, play distribution |
 | 🎵 Online Lyrics Search | Search online lyrics for local songs without embedded lyrics, with LRC sync scrolling |
 | 🎵 Online Music Search | iTunes API fuzzy search, 30s royalty-free preview, one-click add to playlist |
 | 📁 Local Music Library | Select local folders, recursive scan with directory tree display, click to play (10 formats) |
@@ -65,6 +76,10 @@
 | ☁️ WebDAV Cloud Storage | Connect to Synology/QNAP/NextCloud, browse and play media files |
 | 📦 AList Aggregator | Connect once to access Baidu Drive, Aliyun Drive, 123 Drive, and more |
 | 🎚️ Full Playback Controls | Progress bar seek, volume slider, prev/next, play/pause, playback speed |
+| 🎨 Color-Driven Themes | Pick a color, auto-generate complete light/dark themes, 8 curated colors + custom picker |
+| 🌓 Display Mode | Light / Dark / Follow System / Scheduled switching, one-click quick toggle |
+| 🔤 Font System | 6 Chinese fonts, one-click switch |
+| 🎹 System Media Keys | Keyboard media key support (play/pause, next, prev) |
 
 ---
 
@@ -264,6 +279,8 @@ app/
 │   │   ├── SpectrumVisualizer.tsx   # Spectrum visualizer
 │   │   ├── ParticleBackground.tsx   # Particle background effects
 │   │   ├── LyricsPanel.tsx          # Lyrics display panel
+│   │   ├── EQPanel.tsx             # 10-band equalizer panel
+│   │   ├── ListeningReport.tsx     # Listening report
 │   │   ├── LocalFileTree.tsx        # Local music directory tree
 │   │   ├── VideoFileTree.tsx        # Local video directory tree
 │   │   ├── VideoPlayer.tsx          # Video player
@@ -275,6 +292,7 @@ app/
 │   │   ├── useLocalLibrary.ts       # Local file management
 │   │   ├── useVideoLibrary.ts       # Video file management
 │   │   ├── useLyricsSearch.ts       # Online lyrics search
+│   │   ├── useAudioContext.ts       # Shared AudioContext + EQ engine
 │   │   ├── useBilibili.ts           # Bilibili resolution logic
 │   │   ├── useWebDAV.ts             # WebDAV protocol client
 │   │   └── useAList.ts              # AList API client

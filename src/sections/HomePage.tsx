@@ -132,7 +132,7 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
   const [mounted, setMounted] = useState(false)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [showSettings, setShowSettings] = useState(false)
-  useTheme()
+  const { setMode, isDark } = useTheme()
   const { state: playerState } = usePlayer()
   const isPlaying = playerState.isPlaying || playerState.isVideoPlaying
   const currentFeature = playerState.currentFeature
@@ -223,34 +223,60 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
         </button>
       )}
 
-      {/* Settings button */}
-      <button
-        onClick={() => setShowSettings(true)}
-        className="absolute top-4 right-4 z-30 p-3 rounded-xl transition-all duration-200 hover:scale-110"
-        style={{
-          backgroundColor: 'var(--theme-bg-secondary, #15152a)',
-          color: 'var(--theme-text-primary, #ffffff)',
-          border: '1px solid var(--theme-bg-tertiary, #1e1e3a)',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
-        }}
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c-.94-1.543-.826 3.31-2.37-2.37a1.724 1.724 0 00-2.573 1.066c-.426-1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826.36-2.37-2.37 0.996.608 2.296.07 2.572-1.065z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      </button>
+      {/* Top bar: mode toggle + settings */}
+      <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+        {/* Display mode quick toggle */}
+        <button
+          onClick={() => setMode(isDark ? 'light' : 'dark')}
+          className="p-3 rounded-xl transition-all duration-200 hover:scale-110"
+          title={isDark ? '切换到浅色模式' : '切换到深色模式'}
+          style={{
+            backgroundColor: 'var(--theme-bg-secondary, #15152a)',
+            color: 'var(--theme-text-primary, #ffffff)',
+            border: '1px solid var(--theme-bg-tertiary, #1e1e3a)',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
+          }}
+        >
+          {isDark ? (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          )}
+        </button>
+
+        {/* Settings button */}
+        <button
+          onClick={() => setShowSettings(true)}
+          className="p-3 rounded-xl transition-all duration-200 hover:scale-110"
+          style={{
+            backgroundColor: 'var(--theme-bg-secondary, #15152a)',
+            color: 'var(--theme-text-primary, #ffffff)',
+            border: '1px solid var(--theme-bg-tertiary, #1e1e3a)',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
+          }}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c-.94 1.543-.826 3.31-2.37-2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826.36-2.37-2.37 0.996.608 2.296.07 2.572-1.065z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
+      </div>
 
       {/* Main content */}
       <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-6">
         
         {/* Logo + Title */}
         <div
-          className={`text-center mb-12 transition-all duration-1000 ${
+          className={`text-center mb-10 transition-all duration-1000 ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}
         >
           {/* Animated logo */}
-          <div className="relative inline-flex items-center justify-center mb-6">
+          <div className="relative inline-flex items-center justify-center mb-5">
             <div className="absolute w-24 h-24 rounded-full opacity-30 blur-xl animated-gradient"
               style={{ background: `conic-gradient(var(--theme-primary, #8b5cf6), var(--theme-secondary, #06b6d4), var(--theme-accent-1, #f59e0b), var(--theme-gradient-1, #8b5cf6), var(--theme-primary, #8b5cf6))` }}
             />
@@ -290,102 +316,102 @@ export default function HomePage({ onNavigate }: { onNavigate: (key: FeatureKey)
         </div>
 
         {/* Feature Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 max-w-3xl w-full">
-        {features.map((feature, index) => (
-          <button
-            key={feature.key}
-            onClick={() => onNavigate(feature.key)}
-            onMouseEnter={() => setHoveredIndex(index)}
-            onMouseLeave={() => setHoveredIndex(null)}
-            className={`
-              group relative rounded-2xl p-6 text-left cursor-pointer
-              transition-all duration-500 ease-out
-              border
-              hover:scale-[1.04] active:scale-[0.97]
-              backdrop-blur-xl
-              ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}
-            `}
-            style={{
-              borderColor: 'var(--theme-bg-tertiary, #1e1e3a)',
-              background: hoveredIndex === index
-                ? 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'
-                : 'var(--theme-bg-tertiary, #1e1e3a)/30',
-              transitionDelay: mounted ? `${index * 80 + 200}ms` : '0ms',
-              boxShadow: hoveredIndex === index
-                ? `0 0 40px var(--theme-glow, rgba(139, 92, 246, 0.4)), 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)`
-                : '0 4px 16px rgba(0,0,0,0.2)',
-            }}
-          >
-            {/* Gradient border glow on hover */}
-            <div
-              className="absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 pointer-events-none"
-              style={{
-                background: hoveredIndex === index
-                  ? 'linear-gradient(135deg, var(--theme-glow, rgba(139, 92, 246, 0.4)), transparent 60%)'
-                  : 'transparent',
-                opacity: hoveredIndex === index ? 0.15 : 0,
-                mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                maskComposite: 'exclude',
-                WebkitMaskComposite: 'xor',
-                padding: '1px',
-              }}
-            />
-
-            {/* Icon */}
-            <div
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-w-4xl w-full">
+          {features.map((feature, index) => (
+            <button
+              key={feature.key}
+              onClick={() => onNavigate(feature.key)}
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
               className={`
-                transition-all duration-500 mb-3
-                ${hoveredIndex === index ? 'drop-shadow-lg' : ''}
+                group relative rounded-2xl p-5 text-left cursor-pointer
+                transition-all duration-500 ease-out
+                border
+                hover:scale-[1.04] active:scale-[0.97]
+                backdrop-blur-xl
+                ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}
               `}
               style={{
-                color: hoveredIndex === index ? 'var(--theme-text-primary, #ffffff)' : 'var(--theme-text-muted, #9ca3af)',
-                filter: hoveredIndex === index
-                  ? 'drop-shadow(0 0 12px var(--theme-glow, rgba(139, 92, 246, 0.4)))'
-                  : 'none',
-                transform: hoveredIndex === index ? 'scale(1.1)' : 'scale(1)',
+                borderColor: 'var(--theme-bg-tertiary, #1e1e3a)',
+                background: hoveredIndex === index
+                  ? 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'
+                  : 'var(--theme-bg-tertiary, #1e1e3a)/30',
+                transitionDelay: mounted ? `${index * 60 + 200}ms` : '0ms',
+                boxShadow: hoveredIndex === index
+                  ? `0 0 40px var(--theme-glow, rgba(139, 92, 246, 0.4)), 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)`
+                  : '0 4px 16px rgba(0,0,0,0.2)',
               }}
             >
-              {feature.icon}
-            </div>
+              {/* Gradient border glow on hover */}
+              <div
+                className="absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 pointer-events-none"
+                style={{
+                  background: hoveredIndex === index
+                    ? 'linear-gradient(135deg, var(--theme-glow, rgba(139, 92, 246, 0.4)), transparent 60%)'
+                    : 'transparent',
+                  opacity: hoveredIndex === index ? 0.15 : 0,
+                  mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                  maskComposite: 'exclude',
+                  WebkitMaskComposite: 'xor',
+                  padding: '1px',
+                }}
+              />
 
-            {/* Title */}
-            <h3 className="font-semibold text-sm mb-1 tracking-wide" style={{ color: 'var(--theme-text-primary, #ffffff)' }}>
-              {feature.title}
-            </h3>
+              {/* Icon */}
+              <div
+                className={`
+                  transition-all duration-500 mb-2.5
+                  ${hoveredIndex === index ? 'drop-shadow-lg' : ''}
+                `}
+                style={{
+                  color: hoveredIndex === index ? 'var(--theme-text-primary, #ffffff)' : 'var(--theme-text-muted, #9ca3af)',
+                  filter: hoveredIndex === index
+                    ? 'drop-shadow(0 0 12px var(--theme-glow, rgba(139, 92, 246, 0.4)))'
+                    : 'none',
+                  transform: hoveredIndex === index ? 'scale(1.1)' : 'scale(1)',
+                }}
+              >
+                {feature.icon}
+              </div>
 
-            {/* Subtitle */}
-            <p className="text-xs leading-relaxed transition-colors duration-300" style={{ color: hoveredIndex === index ? 'var(--theme-text-secondary, #d1d5db)' : 'var(--theme-text-muted, #9ca3af)' }}>
-              {feature.subtitle}
-            </p>
+              {/* Title */}
+              <h3 className="font-semibold text-sm mb-0.5 tracking-wide" style={{ color: 'var(--theme-text-primary, #ffffff)' }}>
+                {feature.title}
+              </h3>
 
-            {/* Hover arrow indicator */}
-            <div
-              className="absolute top-4 right-4 w-5 h-5 flex items-center justify-center
-                transition-all duration-300"
-              style={{ color: hoveredIndex === index ? 'var(--theme-primary, #8b5cf6)' : 'transparent' }}
-            >
-              <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5">
-                <path
-                  d="M6 4l4 4-4 4"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-          </button>
-        ))}
-      </div>
+              {/* Subtitle */}
+              <p className="text-xs leading-relaxed transition-colors duration-300 line-clamp-2" style={{ color: hoveredIndex === index ? 'var(--theme-text-secondary, #d1d5db)' : 'var(--theme-text-muted, #9ca3af)' }}>
+                {feature.subtitle}
+              </p>
+
+              {/* Hover arrow indicator */}
+              <div
+                className="absolute top-3 right-3 w-4 h-4 flex items-center justify-center
+                  transition-all duration-300"
+                style={{ color: hoveredIndex === index ? 'var(--theme-primary, #8b5cf6)' : 'transparent' }}
+              >
+                <svg viewBox="0 0 16 16" fill="none" className="w-3 h-3">
+                  <path
+                    d="M6 4l4 4-4 4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </button>
+          ))}
+        </div>
 
         {/* Bottom hint */}
         <div
-          className={`mt-10 text-center transition-all duration-1000 ${
+          className={`mt-8 text-center transition-all duration-1000 ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
           style={{ transitionDelay: '900ms' }}
         >
-          <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--theme-text-muted, #9ca3af)/40' }}>
+          <p className="text-xs tracking-widest uppercase" style={{ color: 'var(--theme-text-muted, #9ca3af)' }}>
             选择功能开始使用
           </p>
         </div>

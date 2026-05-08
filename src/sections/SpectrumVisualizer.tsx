@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useTheme } from '../ThemeContext'
+import { useAudioContext } from '../hooks/useAudioContext'
 
 interface Props {
   isPlaying: boolean
@@ -15,7 +16,7 @@ function hslToHex(hsl: string): string {
   const s = parseInt(match[2]) / 100
   const l = parseInt(match[3]) / 100
 
-  let r, g, b
+  let r: number, g: number, b: number
   if (s === 0) {
     r = g = b = l
   } else {
@@ -48,50 +49,24 @@ export default function SpectrumVisualizer({ isPlaying, colors: propsColors, aud
   const containerRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number | null>(null)
   const heightsRef = useRef<Float32Array>(new Float32Array(bars).fill(0.05))
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const analyserRef = useRef<AnalyserNode | null>(null)
-  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
-  const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
-  const audioElementRef = useRef<HTMLAudioElement | null>(null)
+
+  // Use shared audio context hook
+  const { getAnalyser, ensureConnected, connectAudioElement } = useAudioContext()
+
+  // Wire up audio element
+  useEffect(() => {
+    if (!audioElement) return
+    connectAudioElement(audioElement)
+  }, [audioElement, connectAudioElement])
 
   useEffect(() => {
-    audioElementRef.current = audioElement ?? null
-  }, [audioElement])
-
-  useEffect(() => {
-    if (!audioElementRef.current) return
-
-    const initAudioAnalyser = () => {
-      try {
-        if (!audioContextRef.current) {
-          audioContextRef.current = new AudioContext()
-          analyserRef.current = audioContextRef.current.createAnalyser()
-          analyserRef.current.fftSize = 128
-          analyserRef.current.smoothingTimeConstant = 0.8
-          dataArrayRef.current = new Uint8Array(analyserRef.current.frequencyBinCount)
-
-          if (audioElementRef.current) {
-            sourceRef.current = audioContextRef.current.createMediaElementSource(audioElementRef.current)
-            sourceRef.current.connect(analyserRef.current)
-            analyserRef.current.connect(audioContextRef.current.destination)
-          }
-        }
-      } catch (e) {
-        console.warn('Audio analyser init failed:', e)
-      }
+    if (!audioElement) return
+    try {
+      ensureConnected()
+    } catch (e) {
+      console.warn('Audio analyser init failed:', e)
     }
-
-    if (isPlaying && audioElementRef.current?.src) {
-      if (audioContextRef.current?.state === 'suspended') {
-        audioContextRef.current.resume()
-      }
-      if (!analyserRef.current) {
-        initAudioAnalyser()
-      }
-    }
-
-    return () => {}
-  }, [isPlaying])
+  }, [isPlaying, audioElement, ensureConnected])
 
   useEffect(() => {
     const container = containerRef.current
@@ -111,24 +86,18 @@ export default function SpectrumVisualizer({ isPlaying, colors: propsColors, aud
         lastTime = currentTime - (elapsed % frameInterval)
 
         const heights = heightsRef.current
-        const analyser = analyserRef.current
-        const dataArray = dataArrayRef.current
+        const analyser = getAnalyser()
+        let dataArray: Uint8Array<ArrayBuffer> | null = null
+        try {
+          dataArray = new Uint8Array(analyser.frequencyBinCount as number)
+          analyser.getByteFrequencyData(dataArray)
+        } catch { /* analyser not ready, use fake data */ }
 
-        if (isPlaying && analyser && dataArray) {
-          try {
-            analyser.getByteFrequencyData(dataArray)
-            const step = Math.floor(dataArray.length / bars)
-            for (let i = 0; i < bars; i++) {
-              const dataIndex = Math.min(i * step, dataArray.length - 1)
-              heights[i] = Math.max(0.05, (dataArray[dataIndex] / 255) * 1.2)
-            }
-          } catch (e) {
-            for (let i = 0; i < bars; i++) {
-              let h = heights[i]
-              const target = Math.random() * 0.7 + 0.1
-              h += (target - h) * (0.15 + Math.random() * 0.1)
-              heights[i] = Math.max(0.05, Math.min(1, h))
-            }
+        if (isPlaying && dataArray) {
+          const step = Math.floor(dataArray.length / bars)
+          for (let i = 0; i < bars; i++) {
+            const dataIndex = Math.min(i * step, dataArray.length - 1)
+            heights[i] = Math.max(0.05, (dataArray![dataIndex] / 255) * 1.2)
           }
         } else {
           for (let i = 0; i < bars; i++) {
@@ -154,7 +123,7 @@ export default function SpectrumVisualizer({ isPlaying, colors: propsColors, aud
 
     rafRef.current = requestAnimationFrame(animate)
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
-  }, [isPlaying])
+  }, [isPlaying, getAnalyser])
 
   const rawColors = propsColors && propsColors.length > 0
     ? propsColors
@@ -172,8 +141,7 @@ export default function SpectrumVisualizer({ isPlaying, colors: propsColors, aud
     >
       {Array.from({ length: bars }).map((_, i) => {
         const colorPct = i / (bars - 1)
-        const colorIdx = colorPct * (colors.length - 1)
-        const lowerIdx = Math.floor(colorIdx)
+        const lowerIdx = Math.floor(colorPct * (colors.length - 1))
         const upperIdx = Math.min(lowerIdx + 1, colors.length - 1)
 
         return (

@@ -69,4 +69,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readVideoDirectory: (dirPath: string): Promise<FileSystemEntry[] | null> => {
     return ipcRenderer.invoke('read-video-directory', dirPath)
   },
+  // System Media Keys
+  onMediaKey: (callback: (action: 'play-pause' | 'next' | 'prev') => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, action: 'play-pause' | 'next' | 'prev') => callback(action)
+    ipcRenderer.on('system-media-key', handler)
+    return () => ipcRenderer.removeListener('system-media-key', handler)
+  },
 })

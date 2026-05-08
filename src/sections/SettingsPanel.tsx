@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '../ThemeContext';
+import { presetColors } from '../theme';
+import type { ThemeMode } from '../theme';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -7,20 +9,16 @@ interface SettingsPanelProps {
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
-  const { theme, setTheme, setCustomColor, themes, fontId, setFontId, fonts } = useTheme();
-  const [activeTab, setActiveTab] = useState<'theme' | 'font'>('theme');
-  const [customColorInput, setCustomColorInput] = useState(theme.colors.primary);
+  const { mode, setMode, primaryColor, setPrimaryColor, schedule, setSchedule, fontId, setFontId, fonts, isDark } = useTheme();
+  const [activeTab, setActiveTab] = useState<'theme' | 'display' | 'font'>('theme');
+  const [customColorInput, setCustomColorInput] = useState(primaryColor);
 
   if (!isOpen) return null;
 
   const handleCustomColorChange = (color: string) => {
     setCustomColorInput(color);
-    setCustomColor(color);
+    setPrimaryColor(color);
   };
-
-  // 按分类分组主题
-  const lightThemes = themes.filter(t => t.category === 'light');
-  const darkThemes = themes.filter(t => t.category === 'dark' && t.id !== 'custom');
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
@@ -63,92 +61,72 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all`}
             style={{
               backgroundColor: activeTab === 'theme' ? 'var(--theme-primary, #8b5cf6)' : 'transparent',
-              color: activeTab === 'theme' ? 'var(--theme-bg-primary, #0a0a1a)' : 'var(--theme-text-muted, #9ca3af)'
+              color: activeTab === 'theme' ? '#fff' : 'var(--theme-text-muted, #9ca3af)'
             }}
           >
-            🎨 主题风格
+            🎨 颜色
+          </button>
+          <button
+            onClick={() => setActiveTab('display')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all`}
+            style={{
+              backgroundColor: activeTab === 'display' ? 'var(--theme-primary, #8b5cf6)' : 'transparent',
+              color: activeTab === 'display' ? '#fff' : 'var(--theme-text-muted, #9ca3af)'
+            }}
+          >
+            {isDark ? '🌙' : '☀️'} 显示
           </button>
           <button
             onClick={() => setActiveTab('font')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all`}
             style={{
               backgroundColor: activeTab === 'font' ? 'var(--theme-primary, #8b5cf6)' : 'transparent',
-              color: activeTab === 'font' ? 'var(--theme-bg-primary, #0a0a1a)' : 'var(--theme-text-muted, #9ca3af)'
+              color: activeTab === 'font' ? '#fff' : 'var(--theme-text-muted, #9ca3af)'
             }}
           >
-            🔤 字体选择
+            🔤 字体
           </button>
         </div>
 
         {/* 内容区域 */}
         <div className="px-6 pb-6 pt-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
           
-          {/* 主题选项卡 */}
+          {/* 颜色选项卡 */}
           {activeTab === 'theme' && (
-            <div className="space-y-6">
-              
-              {/* 浅色系 */}
+            <div className="space-y-5">
+              {/* 预设颜色 */}
               <div>
                 <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--theme-text-secondary, #d1d5db)' }}>
-                  <span>🌞</span> 浅色系
+                  🎨 选择主色调
                 </h3>
-                <div className="grid grid-cols-3 gap-3">
-                  {lightThemes.map((t) => (
+                <div className="grid grid-cols-4 gap-3">
+                  {presetColors.map((preset) => (
                     <button
-                      key={t.id}
-                      onClick={() => setTheme(t.id)}
-                      className={`p-3 rounded-xl transition-all duration-200 text-left ${
-                        theme.id === t.id ? 'ring-2' : ''
-                      }`}
+                      key={preset.id}
+                      onClick={() => {
+                        setPrimaryColor(preset.color);
+                        setCustomColorInput(preset.color);
+                      }}
+                      className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-200"
                       style={{
-                        backgroundColor: theme.id === t.id 
-                          ? 'var(--theme-bg-tertiary, #1e1e3a)'
-                          : 'var(--theme-bg-primary, #0a0a1a)',
-                        borderColor: t.colors.primary,
-                        borderWidth: theme.id === t.id ? 2 : 1,
-                        borderStyle: 'solid',
-                        color: 'var(--theme-text-primary, #ffffff)'
+                        backgroundColor: primaryColor === preset.color 
+                          ? 'var(--theme-bg-tertiary, #1e1e3a)' 
+                          : 'transparent',
+                        border: primaryColor === preset.color 
+                          ? `2px solid ${preset.color}` 
+                          : '2px solid transparent',
                       }}
                     >
-                      <div className="flex gap-1.5 mb-2">
-                        <div className="h-2 flex-1 rounded-full" style={{ backgroundColor: t.colors.primary }} />
-                        <div className="h-2 flex-1 rounded-full" style={{ backgroundColor: t.colors.secondary }} />
-                        <div className="h-2 flex-1 rounded-full" style={{ backgroundColor: t.colors.gradient1 }} />
-                      </div>
-                      <span className="text-sm font-medium">{t.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 深色系 */}
-              <div>
-                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--theme-text-secondary, #d1d5db)' }}>
-                  <span>🌙</span> 深色系
-                </h3>
-                <div className="grid grid-cols-3 gap-3">
-                  {darkThemes.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => setTheme(t.id)}
-                      className={`p-3 rounded-xl transition-all duration-200 text-left ${
-                        theme.id === t.id ? 'ring-2' : ''
-                      }`}
-                      style={{
-                        backgroundColor: theme.id === t.id 
-                          ? 'var(--theme-bg-tertiary, #1e1e3a)'
-                          : 'var(--theme-bg-primary, #0a0a1a)',
-                        borderColor: t.colors.primary,
-                        borderWidth: theme.id === t.id ? 2 : 1,
-                        borderStyle: 'solid',
-                        color: 'var(--theme-text-primary, #ffffff)'
-                      }}
-                    >
-                      <div className="flex gap-1 mb-2">
-                        <div className="h-2 flex-1 rounded-full" style={{ backgroundColor: t.colors.primary }} />
-                        <div className="h-2 flex-1 rounded-full" style={{ backgroundColor: t.colors.gradient2 }} />
-                      </div>
-                      <span className="text-xs font-medium">{t.name}</span>
+                      <div 
+                        className="w-10 h-10 rounded-xl transition-transform hover:scale-110"
+                        style={{ 
+                          backgroundColor: preset.color,
+                          boxShadow: primaryColor === preset.color ? `0 4px 16px ${preset.color}60` : 'none',
+                        }}
+                      />
+                      <span className="text-xs font-medium" style={{ color: 'var(--theme-text-secondary, #d1d5db)' }}>
+                        {preset.name}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -157,13 +135,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
               {/* 自定义颜色 */}
               <div>
                 <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--theme-text-secondary, #d1d5db)' }}>
-                  <span>🎨</span> 自定义颜色
+                  ✨ 自定义颜色
                 </h3>
                 <div 
                   className="p-4 rounded-xl space-y-4"
                   style={{ backgroundColor: 'var(--theme-bg-primary, #0a0a1a)' }}
                 >
-                  {/* 颜色选择器 */}
                   <div className="flex items-center gap-4">
                     <input
                       type="color"
@@ -180,33 +157,159 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose })
                         {customColorInput.toUpperCase()}
                       </div>
                     </div>
-                    <button
-                      onClick={() => setTheme('custom')}
-                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
-                      style={{ backgroundColor: customColorInput, color: 'var(--theme-bg-primary, #0a0a1a)' }}
-                    >
-                      应用
-                    </button>
                   </div>
 
-                  {/* 预设颜色快捷选择 */}
-                  <div>
-                    <div className="text-xs mb-2" style={{ color: 'var(--theme-text-muted, #9ca3af)' }}>
-                      快捷选择热门颜色
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {['#ff4d4f', '#31c27c', '#ec4141', '#1db954', '#8b5cf6', '#06b6d4', '#ff6b9d', '#00b4d8', '#f59e0b', '#ef4444', '#3b82f6', '#10b981'].map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => handleCustomColorChange(color)}
-                          className="w-8 h-8 rounded-lg transition-transform hover:scale-110"
-                          style={{ backgroundColor: color }}
-                          title={color.toUpperCase()}
-                        />
-                      ))}
-                    </div>
+                  {/* 快捷颜色 */}
+                  <div className="flex flex-wrap gap-2">
+                    {['#ff4d4f', '#31c27c', '#ec4141', '#1db954', '#8b5cf6', '#06b6d4', '#ff6b9d', '#00b4d8', '#f59e0b', '#ef4444', '#3b82f6', '#10b981'].map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => handleCustomColorChange(color)}
+                        className="w-8 h-8 rounded-lg transition-transform hover:scale-110"
+                        style={{ backgroundColor: color }}
+                        title={color.toUpperCase()}
+                      />
+                    ))}
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* 显示模式选项卡 */}
+          {activeTab === 'display' && (
+            <div className="space-y-5">
+              {/* 模式选择 */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--theme-text-secondary, #d1d5db)' }}>
+                  🌓 显示模式
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {([
+                    { id: 'light' as ThemeMode, icon: '☀️', name: '浅色模式', desc: '始终使用浅色背景' },
+                    { id: 'dark' as ThemeMode, icon: '🌙', name: '深色模式', desc: '始终使用深色背景' },
+                    { id: 'auto' as ThemeMode, icon: '💻', name: '跟随系统', desc: '自动匹配系统深浅色设置' },
+                    { id: 'scheduled' as ThemeMode, icon: '🕐', name: '定时切换', desc: '日落后自动切换深色' },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setMode(opt.id)}
+                      className="p-4 rounded-xl transition-all duration-200 text-left"
+                      style={{
+                        backgroundColor: mode === opt.id 
+                          ? 'var(--theme-bg-tertiary, #1e1e3a)' 
+                          : 'var(--theme-bg-primary, #0a0a1a)',
+                        border: mode === opt.id 
+                          ? `2px solid var(--theme-primary, #8b5cf6)` 
+                          : '1px solid var(--theme-bg-tertiary, #1e1e3a)',
+                      }}
+                    >
+                      <div className="text-2xl mb-2">{opt.icon}</div>
+                      <div className="text-sm font-semibold mb-1" style={{ color: 'var(--theme-text-primary, #ffffff)' }}>
+                        {opt.name}
+                      </div>
+                      <div className="text-xs" style={{ color: 'var(--theme-text-muted, #9ca3af)' }}>
+                        {opt.desc}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 定时配置 */}
+              {mode === 'scheduled' && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--theme-text-secondary, #d1d5db)' }}>
+                    🕐 定时设置
+                  </h3>
+                  <div 
+                    className="p-4 rounded-xl space-y-4"
+                    style={{ backgroundColor: 'var(--theme-bg-primary, #0a0a1a)' }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm" style={{ color: 'var(--theme-text-secondary, #d1d5db)' }}>
+                        启用定时切换
+                      </span>
+                      <button
+                        onClick={() => setSchedule({ ...schedule, enabled: !schedule.enabled })}
+                        className="relative w-12 h-6 rounded-full transition-colors duration-200"
+                        style={{ backgroundColor: schedule.enabled ? 'var(--theme-primary, #8b5cf6)' : 'var(--theme-bg-tertiary, #1e1e3a)' }}
+                      >
+                        <div 
+                          className="absolute top-1 w-4 h-4 rounded-full bg-white transition-transform duration-200"
+                          style={{ left: schedule.enabled ? '26px' : '4px' }}
+                        />
+                      </button>
+                    </div>
+                    {schedule.enabled && (
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <label className="text-xs block mb-1" style={{ color: 'var(--theme-text-muted, #9ca3af)' }}>
+                            深色开始
+                          </label>
+                          <input
+                            type="time"
+                            value={schedule.darkStart}
+                            onChange={(e) => setSchedule({ ...schedule, darkStart: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg text-sm"
+                            style={{
+                              backgroundColor: 'var(--theme-bg-tertiary, #1e1e3a)',
+                              color: 'var(--theme-text-primary, #ffffff)',
+                              border: '1px solid var(--theme-bg-tertiary, #1e1e3a)',
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center pt-4" style={{ color: 'var(--theme-text-muted, #9ca3af)' }}>→</div>
+                        <div className="flex-1">
+                          <label className="text-xs block mb-1" style={{ color: 'var(--theme-text-muted, #9ca3af)' }}>
+                            深色结束
+                          </label>
+                          <input
+                            type="time"
+                            value={schedule.darkEnd}
+                            onChange={(e) => setSchedule({ ...schedule, darkEnd: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg text-sm"
+                            style={{
+                              backgroundColor: 'var(--theme-bg-tertiary, #1e1e3a)',
+                              color: 'var(--theme-text-primary, #ffffff)',
+                              border: '1px solid var(--theme-bg-tertiary, #1e1e3a)',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 快捷切换 */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--theme-text-secondary, #d1d5db)' }}>
+                  ⚡ 快捷切换
+                </h3>
+                <button
+                  onClick={() => setMode(isDark ? 'light' : 'dark')}
+                  className="w-full p-4 rounded-xl flex items-center justify-between transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                  style={{
+                    background: `linear-gradient(135deg, var(--theme-bg-primary, #0a0a1a), var(--theme-bg-tertiary, #1e1e3a))`,
+                    border: '1px solid var(--theme-bg-tertiary, #1e1e3a)',
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{isDark ? '☀️' : '🌙'}</span>
+                    <div>
+                      <div className="text-sm font-semibold" style={{ color: 'var(--theme-text-primary, #ffffff)' }}>
+                        切换到{isDark ? '浅色' : '深色'}模式
+                      </div>
+                      <div className="text-xs" style={{ color: 'var(--theme-text-muted, #9ca3af)' }}>
+                        当前: {isDark ? '深色模式' : '浅色模式'}
+                      </div>
+                    </div>
+                  </div>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--theme-text-muted, #9ca3af)' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
             </div>
           )}

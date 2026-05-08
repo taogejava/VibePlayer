@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, session, ipcMain, net, WebContentsView, dialog, protocol } from 'electron'
+import { app, BrowserWindow, shell, session, ipcMain, net, WebContentsView, dialog, protocol, globalShortcut } from 'electron'
 import { join, dirname, extname } from 'path'
 import { fileURLToPath } from 'url'
 import { createServer } from 'http'
@@ -554,6 +554,7 @@ function createWindow() {
 }
 
 app.on('window-all-closed', () => {
+  globalShortcut.unregisterAll()
   if (process.platform !== 'darwin') {
     app.quit()
   }
@@ -565,7 +566,31 @@ app.on('activate', () => {
   }
 })
 
+// ============ System Media Keys ============
+
+// Forward media key events to the renderer process
+function sendMediaKeyToRenderer(action: 'play-pause' | 'next' | 'prev') {
+  if (!win || win.isDestroyed()) return
+  try {
+    win.webContents.send('system-media-key', action)
+    console.log('[Main] Media key:', action)
+  } catch (e) {
+    console.warn('[Main] Failed to send media key to renderer:', e)
+  }
+}
+
+function registerMediaKeys() {
+  // MediaPlayPause
+  globalShortcut.register('MediaPlayPause', () => sendMediaKeyToRenderer('play-pause'))
+  // MediaNextTrack
+  globalShortcut.register('MediaNextTrack', () => sendMediaKeyToRenderer('next'))
+  // MediaPreviousTrack
+  globalShortcut.register('MediaPreviousTrack', () => sendMediaKeyToRenderer('prev'))
+  console.log('[Main] System media keys registered')
+}
+
 app.whenReady().then(() => {
   registerLocalFileProtocol()
   createWindow()
+  registerMediaKeys()
 })
